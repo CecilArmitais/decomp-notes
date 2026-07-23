@@ -1,0 +1,90 @@
+# `caf0ff01` — Decomp sub_02055410, sub_02055474 and sub_020554D8
+
+| | |
+|---|---|
+| **Commit** | `caf0ff01` (as of writing — renamed if amended or rebased) |
+| **Branch** | `decomp-team-member-accessors`, on top of `bf352238` |
+| **Verified** | matching build, `build/pmdsky.us/pmdsky.us.nds: OK` |
+
+> **Unverified AI-authored reasoning.** Not part of the decompilation, never
+> merged, not authoritative. The PR diff and the matching build are the sources
+> of truth — see [the README](../README.md). Claims are labelled **fact** (read
+> off the asm, or from an in-tree header) or **inference**.
+
+Three of the eight callees still outstanding from the actor cluster. All three
+matched on the first attempt.
+
+## What they do
+
+**Fact.** Each takes a member index, checks
+`TEAM_MEMBER_TABLE_PTR->members[idx].is_valid & 1`, then compares the index
+against a constant chosen by game mode:
+
+| function | special episode | otherwise |
+|---|---|---|
+| `sub_02055410` | index == 2 | index == 0 |
+| `sub_02055474` | index == 3 | index == 1 |
+| `sub_020554D8` | index == 4 | always false |
+
+**Inference, and unusually well corroborated.** Two independent pieces of
+evidence:
+
+1. Those are exactly the indices `GetMainCharacter1`, `GetMainCharacter2` and
+   `GetMainCharacter3` select (commit `a2e07489`), including `GetMainCharacter3`
+   being special-episode-only.
+2. **`IsMainCharacter`** — a *pre-existing, named* function in the tree, sitting
+   immediately after these three in `asm/main_02055528.s` and still asm — tests
+   the same validity bit and then `idx < 5` and `idx ∈ {2,3,4}` in a special
+   episode, `{0,1}` otherwise. That set is **exactly the union** of the three
+   predicates:
+
+   | | special episode | otherwise |
+   |---|---|---|
+   | `sub_02055410` | 2 | 0 |
+   | `sub_02055474` | 3 | 1 |
+   | `sub_020554D8` | 4 | (never) |
+   | **union** | **{2,3,4}** | **{0,1}** |
+   | `IsMainCharacter` | {2,3,4} | {0,1} |
+
+So each almost certainly answers "is this member index main character *N*?", with
+the named `IsMainCharacter` being the "any of them" form. **The functions still
+keep their `sub_` names** — naming was not the task, and a reviewer should get to
+weigh this rather than inherit it as fact. If someone does name them,
+`IsMainCharacter1/2/3` is the shape the evidence points at.
+
+This also makes `sub_02065050`'s use of them legible: it calls the three in order
+on the appointed leader to decide which of `0x3c`/`0x3d`/`0x3e` to substitute.
+
+## Types
+
+- **`bool8` return**, not `int`. They return literal 0/1.
+- **`members[(s16)idx]`** with an `int` parameter — the cast gives `smulbb` for
+  the index multiply while leaving the parameter a full `int` for the `==`
+  comparisons. Same lever as the `*MemberIdx` functions in `e8f6bca0`.
+
+Prototypes move out of `main_02064FFC.h` into the new header;
+`sub_02065050` was rebuilt to confirm `int` → `bool8` is byte-neutral for it.
+
+## One build error worth recording
+
+The first build failed with `undefined identifier 'bool8'`, then
+`identifier 'bool8' redeclared / was declared as: 'int'`. Cause: the new header
+used `bool8` in its prototypes but included nothing, so when the `.c` included it
+*before* `common.h`, the compiler inferred `int` and then collided with the real
+`typedef u8 bool8` in `util.h`.
+
+**A header must be self-contained.** Adding `#include "util.h"` fixed it — the
+same thing `include/main_02065C48.h` already does. Worth knowing because the
+error message points at the *typedef* rather than at the header that failed to
+include it.
+
+## Naming
+
+No new names. `struct team_member_table`, its fields, `TEAM_MEMBER_TABLE_PTR`,
+`GetGameMode` and `GAME_MODE_SPECIAL_EPISODE` all pre-exist; all three functions
+keep `sub_<addr>`.
+
+## Remaining from the cluster's callee list
+
+`GetUnitNpcIds` (51), `GetAdventureNpcIds` (43), `ov11_022E96E4` (8, overlay),
+`sub_0201E380` (14, palette), `OverlayIsLoaded` (133).
