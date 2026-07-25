@@ -1,9 +1,9 @@
-# `e8f6bca0` — Decomp five team-member index accessors
+# `bee91dbc` — Decomp five team-member index accessors
 
 | | |
 |---|---|
-| **Commit** | `e8f6bca0` (as of writing — renamed if amended or rebased) |
-| **Branch** | `decomp-team-member-accessors`, on top of `a2e07489` |
+| **Commit** | `bee91dbc` (as of writing — renamed if amended or rebased) |
+| **Branch** | `decomp-team-member-accessors`, on top of `cb366895` |
 | **Verified** | matching build, `build/pmdsky.us/pmdsky.us.nds: OK` |
 
 > **Unverified AI-authored reasoning.** Not part of the decompilation, never
@@ -11,7 +11,7 @@
 > of truth — see [the README](../README.md). Claims are labelled **fact** (read
 > off the asm, or from an in-tree header) or **inference**.
 
-The index-returning counterparts of the pointer accessors in `a2e07489`.
+The index-returning counterparts of the pointer accessors in `cb366895`.
 
 ## What they do
 
@@ -43,7 +43,7 @@ and the reason is worth recording because it cost a long search.
   select under *either* signedness, and they matched even as `int`. The family
   is typed `u32` uniformly because the one function that distinguishes the two
   types requires it.
-- **Fact.** `sub_02065050` (commit `4f8467eb`) calls `GetMainCharacter1MemberIdx`
+- **Fact.** `sub_02065050` (commit `d34766ea`) calls `GetMainCharacter1MemberIdx`
   and `GetMainCharacter2MemberIdx`. It was rebuilt with the `u32` prototypes and
   is byte-identical — the equality comparisons it does on the result don't
   depend on signedness.

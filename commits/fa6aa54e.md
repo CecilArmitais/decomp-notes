@@ -1,9 +1,9 @@
-# `405744ce` — Decomp sub_0206549C; make monster_id and a third field signed
+# `fa6aa54e` — Decomp sub_0206549C; make monster_id and a third field signed
 
 | | |
 |---|---|
-| **Commit** | `405744ce` (as of writing — renamed if amended or rebased) |
-| **Branch** | `decomp-RandomizeDemoActors`, on top of `4f8467eb` |
+| **Commit** | `fa6aa54e` (as of writing — renamed if amended or rebased) |
+| **Branch** | `decomp-RandomizeDemoActors`, on top of `d34766ea` |
 | **Verified** | matching build, `build/pmdsky.us/pmdsky.us.nds: OK` |
 
 > **Unverified AI-authored reasoning.** Not part of the decompilation, never
@@ -19,7 +19,7 @@ function that reads or writes `SPECIAL_ACTORS` is now decompiled.
 ## `enum monster_id` gains `MONSTER_INVALID = -1`
 
 Third instance of the same defect, and the reasoning is identical to
-`ENTITY_NONE` in `4f8467eb`:
+`ENTITY_NONE` in `d34766ea`:
 
 - **Fact.** This function reads nine `SPECIAL_ACTORS` slots of type
   `enum monster_id` with `ldrsh` — a signed load. An enum with no negative

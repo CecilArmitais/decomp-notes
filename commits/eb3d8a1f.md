@@ -1,9 +1,9 @@
-# `0277a5a8` — Decomp OverlayIsLoaded; migrate its prog_pos_info array to C
+# `eb3d8a1f` — Decomp OverlayIsLoaded; migrate its prog_pos_info array to C
 
 | | |
 |---|---|
-| **Commit** | `0277a5a8` (as of writing — renamed if amended or rebased) |
-| **Branch** | `decomp-team-member-accessors`, on top of `05992f54` |
+| **Commit** | `eb3d8a1f` (as of writing — renamed if amended or rebased) |
+| **Branch** | `decomp-team-member-accessors`, on top of `b003a4eb` |
 | **Verified** | matching build, `build/pmdsky.us/pmdsky.us.nds: OK` |
 
 > **Unverified AI-authored reasoning.** Not part of the decompilation, never
