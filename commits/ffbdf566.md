@@ -1,9 +1,9 @@
-# `5a376688` — Decomp sub_02065B14 and GetScriptEntityMonsterId
+# `ffbdf566` — Decomp sub_02065B14 and GetScriptEntityMonsterId
 
 | | |
 |---|---|
-| **Commit** | `5a376688` (as of writing — renamed if amended or rebased) |
-| **Branch** | `decomp-RandomizeDemoActors`, on top of `7b691a41` |
+| **Commit** | `ffbdf566` (as of writing — renamed if amended or rebased) |
+| **Branch** | `decomp-RandomizeDemoActors`, on top of `267fbeab` |
 | **Verified** | matching build, `build/pmdsky.us/pmdsky.us.nds: OK` |
 
 > **Unverified AI-authored reasoning.** Not part of the decompilation, never

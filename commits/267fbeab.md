@@ -1,8 +1,8 @@
-# `7b691a41` — Decomp RandomizeDemoActors; declare DEMO_TEAMS
+# `267fbeab` — Decomp RandomizeDemoActors; declare DEMO_TEAMS
 
 | | |
 |---|---|
-| **Commit** | `7b691a41` (as of writing — renamed if amended or rebased) |
+| **Commit** | `267fbeab` (as of writing — renamed if amended or rebased) |
 | **Branch** | `decomp-RandomizeDemoActors`, on top of `c72c3780` |
 | **Verified** | matching build, `build/pmdsky.us/pmdsky.us.nds: OK` |
 
