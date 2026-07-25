@@ -41,10 +41,27 @@ without putting any of it in the tree:
 ## Layout
 
 ```
+pulls/<branch-name>.md     one note per pull request  <- start here
 commits/<short-hash>.md    one note per pmd-sky commit
 ```
 
-**Notes are keyed by commit**, so a PR that contains three commits links three
+**Two levels, because they answer different questions.**
+
+A **pull-request note** is the entry point: what the branch accomplishes as a
+whole, a table of its commits linking to their individual notes, the
+cross-cutting decisions a reviewer should weigh (shared-type changes, anything
+contentious), and the open questions gathered in one place. A reviewer looking at
+a fourteen-commit branch should be able to read one page rather than fourteen.
+
+A **commit note** is the detail for one change: the evidence behind each
+conclusion, what was deliberately left as a placeholder, and what was tried on a
+near-match.
+
+PR notes are keyed by **branch name**, not PR number, because the branch name
+exists before the PR does and survives rebasing. The PR number goes in the
+note's header once it is known.
+
+**Commit notes are keyed by commit**, so a PR that contains three commits links three
 notes, and a reviewer reading any one commit can go straight to the reasoning
 behind it. Each note opens with a header giving the commit, its branch, and how
 it was verified.
