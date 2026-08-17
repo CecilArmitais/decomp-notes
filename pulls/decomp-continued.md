@@ -1,12 +1,12 @@
-# `decomp-continued` — 182 functions across 50 commits
+# `decomp-continued` — 190 functions across 51 commits
 
 | | |
 |---|---|
 | **Branch** | `decomp-continued` |
 | **PR** | *none, and none planned — see below* |
 | **Base** | `upstream/main` @ `86ec9772` |
-| **Commits** | 50 |
-| **Functions decompiled** | **182** |
+| **Commits** | 51 |
+| **Functions decompiled** | **190** |
 | **Verified** | matching build at every commit, `build/pmdsky.us/pmdsky.us.nds: OK` |
 | **Notes written** | **retroactively**, after commit 50 |
 
@@ -91,6 +91,7 @@ splitting it later feasible.
 | `30ea1f34` | Replace the Window placeholder with its real layout | -- | [notes](../commits/30ea1f34.md) |
 | `b6faa493` | Decomp NewWindowScreenCheck, SetScreenWindowsColor and the palette getter | 3 | [notes](../commits/b6faa493.md) |
 | `7f6977e2` | Decomp ten window accessors, including UpdateWindow and ClearWindow | 10 | [notes](../commits/7f6977e2.md) |
+| `702c4c85` | Decomp DeleteWindow and seven window state helpers | 8 | [notes](../commits/702c4c85.md) |
 
 ## Cross-cutting changes a reviewer should weigh
 
@@ -161,10 +162,15 @@ these.** Known outstanding:
 | `MemAlloc` | new header + `overlay_31_02382820.c` | agree; collapse when it lands ([`2472ad54`](../commits/2472ad54.md)) |
 | `UpdateWindow`, `sub_02027B1C` | `overlay_25_init.c` declares both as `char *` | **genuinely wrong** — the value is a window id ([`7f6977e2`](../commits/7f6977e2.md)) |
 | `UpdateWindow`, `sub_02027B1C` | `overlay_13_0238BDA8.c` declares both as `s8` | harmless; left to preserve an upstream annotation |
+| `sub_0202836C` | **five** declarations that disagree: `int`, `s32`, `s8`, `s8`, and `s32` added by [`702c4c85`](../commits/702c4c85.md) | kept out of `window.h` so no overlay sees a conflict |
 
 The `overlay_25_init.c` case is the only *incorrect* one. Fixing it properly
 means retyping `ov25_0238B414`'s own parameter and its callers, which is its own
 piece of work.
+
+**Closed since:** `DeleteWindow`'s provisional declaration in
+`include/main_0202AAA8.h` was replaced by an include when the function landed in
+[`702c4c85`](../commits/702c4c85.md), with all three decompiled callers rebuilt.
 
 ### Signatures the bytes do not determine
 
@@ -181,8 +187,17 @@ convention:
   forwarder return types and veneer argument lists, **chosen to read sensibly**,
   not read off the target.
 - [`7f6977e2`](../commits/7f6977e2.md) — three return/out-parameter types whose
-  callers are still asm and were **not read**. This is the most likely place for
+  callers were still asm and were **not read** at the time. **Checked since**, in
+  [`702c4c85`](../commits/702c4c85.md): the asm callers pass `ldrsb` ids, compare
+  the returns against zero, and hand `sub_020282C8` a stack buffer, so all three
+  hold. Not a cascade — but it was luck, not method.
+- [`702c4c85`](../commits/702c4c85.md) — two `strb` parameters, same shape, and
+  **their callers were not read either**. This is now the most likely place for
   the next cascade.
+
+The pattern is worth naming: **a signature the scratch cannot validate is only
+as good as the caller you read.** When no decompiled caller exists, reading the
+*asm* caller costs one `grep` and settles it.
 
 ### Five functions landed without reaching score 0
 
@@ -206,8 +221,17 @@ construction. What follows is **the limit of the attempts made**.
 | `DseTrackEvent_VolumeFade` | — | — | same family as `TuningFade`, not pursued |
 | `DseTrackEvent_PanFade` | — | — | same family as `TuningFade`, not pursued |
 
-`NewWindow` (126 instructions) and `DeleteWindow` also remain asm and are the
-obvious next window-cluster targets.
+`DeleteWindow` landed in [`702c4c85`](../commits/702c4c85.md) — and the
+technique that closed it is worth applying to `SetupKeyBendLfo`: at score 35
+**every instruction already matched**, and enumerating all 24 declaration orders
+of its four locals found the one that reaches 0. `SetupKeyBendLfo` is sitting in
+exactly that state at 65, and its locals were reordered but **not exhaustively
+permuted**.
+
+Still asm in the window cluster: `NewWindow` (126 instructions), `sub_02027B88`,
+`sub_02027E30`, `sub_020278C4`, `sub_02027974`, `sub_0202836C`, and
+`sub_02027AA0` / `sub_0202760C` (both of which carry `#ifdef JAPAN` bodies and so
+need conditional C).
 
 ## Tooling defects found and fixed during this branch
 
