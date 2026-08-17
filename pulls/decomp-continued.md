@@ -1,12 +1,12 @@
-# `decomp-continued` — 190 functions across 51 commits
+# `decomp-continued` — 192 functions across 52 commits
 
 | | |
 |---|---|
 | **Branch** | `decomp-continued` |
 | **PR** | *none, and none planned — see below* |
 | **Base** | `upstream/main` @ `86ec9772` |
-| **Commits** | 51 |
-| **Functions decompiled** | **190** |
+| **Commits** | 52 |
+| **Functions decompiled** | **192** |
 | **Verified** | matching build at every commit, `build/pmdsky.us/pmdsky.us.nds: OK` |
 | **Notes written** | **retroactively**, after commit 50 |
 
@@ -92,6 +92,7 @@ splitting it later feasible.
 | `b6faa493` | Decomp NewWindowScreenCheck, SetScreenWindowsColor and the palette getter | 3 | [notes](../commits/b6faa493.md) |
 | `7f6977e2` | Decomp ten window accessors, including UpdateWindow and ClearWindow | 10 | [notes](../commits/7f6977e2.md) |
 | `702c4c85` | Decomp DeleteWindow and seven window state helpers | 8 | [notes](../commits/702c4c85.md) |
+| `59c4a95e` | Decomp the volume and pan fade track events | 2 | [notes](../commits/59c4a95e.md) |
 
 ## Cross-cutting changes a reviewer should weigh
 
@@ -215,18 +216,21 @@ construction. What follows is **the limit of the attempts made**.
 
 | function | score | scratch | where it stopped |
 |---|---|---|---|
-| `DseTrackEvent_SetupKeyBendLfo` | 65 | `zAe84` | instruction-for-instruction identical; pure register allocation |
-| `DseTrackEvent_TuningFade` | 935 | `cCB1d` | needs `container` hoisted early and `(b2 << 24) >> 16` |
-| `DseTrackEvent_SetLfoParameter` | 505 | `sSRnd` | duplicate-value cases need merging |
-| `DseTrackEvent_VolumeFade` | — | — | same family as `TuningFade`, not pursued |
-| `DseTrackEvent_PanFade` | — | — | same family as `TuningFade`, not pursued |
+| `DseTrackEvent_SetupKeyBendLfo` | **55** | `Z4yLK` | instructions identical, register assignment only. **All 120 declaration orderings and 11 structural variants tried** in [`59c4a95e`](../commits/59c4a95e.md) |
+| `DseTrackEvent_TuningFade` | **760** | `3NIIR` | was 935; hoisting `container` before the flag test gained 175. Its `b2 << 8` is emitted `lsl #24` then `lsr #16`, unreproduced |
+| `DseTrackEvent_SetLfoParameter` | 505 | `sSRnd` | duplicate-value cases need merging; not attempted since |
 
-`DeleteWindow` landed in [`702c4c85`](../commits/702c4c85.md) — and the
-technique that closed it is worth applying to `SetupKeyBendLfo`: at score 35
-**every instruction already matched**, and enumerating all 24 declaration orders
-of its four locals found the one that reaches 0. `SetupKeyBendLfo` is sitting in
-exactly that state at 65, and its locals were reordered but **not exhaustively
-permuted**.
+**Closed since:** `DseTrackEvent_VolumeFade` and `DseTrackEvent_PanFade` both
+landed at score 0 in [`59c4a95e`](../commits/59c4a95e.md), on a declaration-order
+swap after seven other spellings all stayed at exactly 620.
+
+**A hypothesis this branch was carrying is now ruled out.** `DeleteWindow`
+([`702c4c85`](../commits/702c4c85.md)) was closed by enumerating all 24
+declaration orders of its four locals once its instructions already matched, and
+this note previously named that as *the untried move* on `SetupKeyBendLfo`. It
+has now been tried -- all 120 orderings, plus eleven structural variants -- and
+it does **not** close that one. The remaining difference there is driven by
+something other than the order the locals are introduced.
 
 Still asm in the window cluster: `NewWindow` (126 instructions), `sub_02027B88`,
 `sub_02027E30`, `sub_020278C4`, `sub_02027974`, `sub_0202836C`, and
