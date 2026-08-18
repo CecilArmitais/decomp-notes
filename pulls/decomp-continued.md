@@ -1,12 +1,12 @@
-# `decomp-continued` — 268 functions across 59 commits
+# `decomp-continued` — 278 functions across 60 commits
 
 | | |
 |---|---|
 | **Branch** | `decomp-continued` |
 | **PR** | *none, and none planned — see below* |
 | **Base** | `upstream/main` @ `86ec9772` |
-| **Commits** | 59 |
-| **Functions decompiled** | **268** |
+| **Commits** | 60 |
+| **Functions decompiled** | **278** |
 | **Verified** | matching build at every commit, `build/pmdsky.us/pmdsky.us.nds: OK` |
 | **Notes written** | **retroactively**, after commit 50 |
 
@@ -100,6 +100,7 @@ splitting it later feasible.
 | `0fbdb572` | Decomp four more mission accessors; find the cause of the batch failure | 4 | [notes](../commits/0fbdb572.md) |
 | `5c895f8a` | Decomp nine mission predicates against a faithful scratch context | 9 | [notes](../commits/5c895f8a.md) |
 | `bb3a61e8` | Decomp ten dungeon-state accessors in overlay_29 | 10 | [notes](../commits/bb3a61e8.md) |
+| `ac3e2389` | Decomp ten more dungeon-state accessors in overlay_29 | 10 | [notes](../commits/ac3e2389.md) |
 
 ## Cross-cutting changes a reviewer should weigh
 
