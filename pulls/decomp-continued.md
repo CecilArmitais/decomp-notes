@@ -1,12 +1,12 @@
-# `decomp-continued` — 192 functions across 52 commits
+# `decomp-continued` — 224 functions across 54 commits
 
 | | |
 |---|---|
 | **Branch** | `decomp-continued` |
 | **PR** | *none, and none planned — see below* |
 | **Base** | `upstream/main` @ `86ec9772` |
-| **Commits** | 52 |
-| **Functions decompiled** | **192** |
+| **Commits** | 54 |
+| **Functions decompiled** | **224** |
 | **Verified** | matching build at every commit, `build/pmdsky.us/pmdsky.us.nds: OK` |
 | **Notes written** | **retroactively**, after commit 50 |
 
@@ -93,6 +93,8 @@ splitting it later feasible.
 | `7f6977e2` | Decomp ten window accessors, including UpdateWindow and ClearWindow | 10 | [notes](../commits/7f6977e2.md) |
 | `702c4c85` | Decomp DeleteWindow and seven window state helpers | 8 | [notes](../commits/702c4c85.md) |
 | `59c4a95e` | Decomp the volume and pan fade track events | 2 | [notes](../commits/59c4a95e.md) |
+| `4f46fed9` | Decomp thirty adventure-log accessors | 30 | [notes](../commits/4f46fed9.md) |
+| `72b366b3` | Decomp SetPokemonBattled and GetNbItemAcquired | 2 | [notes](../commits/72b366b3.md) |
 
 ## Cross-cutting changes a reviewer should weigh
 
