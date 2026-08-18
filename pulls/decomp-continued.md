@@ -1,12 +1,12 @@
-# `decomp-continued` — 245 functions across 56 commits
+# `decomp-continued` — 249 functions across 57 commits
 
 | | |
 |---|---|
 | **Branch** | `decomp-continued` |
 | **PR** | *none, and none planned — see below* |
 | **Base** | `upstream/main` @ `86ec9772` |
-| **Commits** | 56 |
-| **Functions decompiled** | **245** |
+| **Commits** | 57 |
+| **Functions decompiled** | **249** |
 | **Verified** | matching build at every commit, `build/pmdsky.us/pmdsky.us.nds: OK` |
 | **Notes written** | **retroactively**, after commit 50 |
 
@@ -97,6 +97,7 @@ splitting it later feasible.
 | `72b366b3` | Decomp SetPokemonBattled and GetNbItemAcquired | 2 | [notes](../commits/72b366b3.md) |
 | `26611d66` | Decomp seventeen storage-selection accessors | 17 | [notes](../commits/26611d66.md) |
 | `dfbb8236` | Decomp four mission-destination accessors in overlay_29 | 4 | [notes](../commits/dfbb8236.md) |
+| `0fbdb572` | Decomp four more mission accessors; find the cause of the batch failure | 4 | [notes](../commits/0fbdb572.md) |
 
 ## Cross-cutting changes a reviewer should weigh
 
