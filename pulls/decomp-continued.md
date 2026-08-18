@@ -1,12 +1,12 @@
-# `decomp-continued` — 224 functions across 54 commits
+# `decomp-continued` — 241 functions across 55 commits
 
 | | |
 |---|---|
 | **Branch** | `decomp-continued` |
 | **PR** | *none, and none planned — see below* |
 | **Base** | `upstream/main` @ `86ec9772` |
-| **Commits** | 54 |
-| **Functions decompiled** | **224** |
+| **Commits** | 55 |
+| **Functions decompiled** | **241** |
 | **Verified** | matching build at every commit, `build/pmdsky.us/pmdsky.us.nds: OK` |
 | **Notes written** | **retroactively**, after commit 50 |
 
@@ -95,6 +95,7 @@ splitting it later feasible.
 | `59c4a95e` | Decomp the volume and pan fade track events | 2 | [notes](../commits/59c4a95e.md) |
 | `4f46fed9` | Decomp thirty adventure-log accessors | 30 | [notes](../commits/4f46fed9.md) |
 | `72b366b3` | Decomp SetPokemonBattled and GetNbItemAcquired | 2 | [notes](../commits/72b366b3.md) |
+| `26611d66` | Decomp seventeen storage-selection accessors | 17 | [notes](../commits/26611d66.md) |
 
 ## Cross-cutting changes a reviewer should weigh
 
