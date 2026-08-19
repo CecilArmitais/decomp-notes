@@ -1,13 +1,13 @@
-# `decomp-continued` — 278 functions across 60 commits
+# `decomp-continued` — 279 functions across 61 commits
 
 | | |
 |---|---|
 | **Branch** | `decomp-continued` |
 | **PR** | *none, and none planned — see below* |
 | **Base** | `upstream/main` @ `86ec9772` |
-| **Commits** | 60 |
-| **Functions decompiled** | **278** |
-| **Verified** | matching build at every commit, `build/pmdsky.us/pmdsky.us.nds: OK` |
+| **Commits** | 61 |
+| **Functions decompiled** | **279** |
+| **Verified** | matching build at every commit, `build/pmdsky.us/pmdsky.us.nds: OK` (US only; see the JP caveat below) |
 | **Notes written** | **retroactively**, after commit 50 |
 
 > **Unverified AI-authored reasoning.** Not part of the decompilation, never
@@ -101,12 +101,36 @@ splitting it later feasible.
 | `5c895f8a` | Decomp nine mission predicates against a faithful scratch context | 9 | [notes](../commits/5c895f8a.md) |
 | `bb3a61e8` | Decomp ten dungeon-state accessors in overlay_29 | 10 | [notes](../commits/bb3a61e8.md) |
 | `ac3e2389` | Decomp ten more dungeon-state accessors in overlay_29 | 10 | [notes](../commits/ac3e2389.md) |
+| `e8823a88` | Decomp SetLeaderAction in overlay_29 | 1 | [notes](../commits/e8823a88.md) |
 
 ## Cross-cutting changes a reviewer should weigh
 
 These are the changes that touch types shared with the rest of the tree. They are
 the ones most likely to be contentious, and they are collected here so nobody has
 to find them across 50 commits.
+
+### A shared prototype widened: `CanMonsterMoveInDirection`
+
+`bool8 CanMonsterMoveInDirection(struct entity *, u16 direction)` becomes `s32
+direction` ([`e8823a88`](../commits/e8823a88.md)), in both the header and the
+already-matching definition in `src/dungeon_capabilities_3.c`.
+
+**Why:** a `u16` parameter makes the caller narrow the argument
+(`lsl #16; lsr #16`). At `SetLeaderAction`'s call site retail passes the value
+unchanged. Any word type matches; `enum direction_id` does not.
+
+**Weigh it:** the definition matches either way, and the only other C caller
+passes a `u8` field, so neither can distinguish the two. This is the first call
+site that can, and it says word. It is still a divergence from pmdsky-debug's
+`u16`.
+
+### A struct field pair retyped: `dungeon.field_0x1d8` / `field_0x1dc`
+
+Four `u16` fields become two `struct position`s
+([`e8823a88`](../commits/e8823a88.md)). Same size, same alignment, and no other
+C code touches them. `dungeon.field_0x614` also becomes `s32` (tested `>= 0`),
+and `display_data.leader_target_direction_mirror` becomes `u8` — the enum type
+folds the stored `0xFF` to `-1` and drops an instruction retail has.
 
 ### Two `-1` sentinels added to shared enums
 
@@ -264,6 +288,11 @@ matching build could report:
    `struct item *Foo(...)` — it parses the name as `*Foo`. Write
    `struct item* Foo(...)`.
 
+4. **`tools/m2ctx/m2ctx.sh` passes `-include global.h`**, which does not exist in
+   this repo (it is `include/global.pch`). It does not fail loudly — it emits a
+   12-line context of predefined macros only. Found in
+   [`e8823a88`](../commits/e8823a88.md); substituting `include/global.pch` works.
+
 ## Open questions
 
 - **Do the two enum sentinels belong upstream at all?** They are the branch's
@@ -279,6 +308,18 @@ matching build could report:
   `unk_0201E380`, `unk_02011DF0`, `unk_02032558`, `unk_02028284` among them.
   Their real sizes are unknown and several are probably interior views of larger
   objects.
+- **The JP build is unverified for `SetLeaderAction`** and is expected not to
+  match ([`e8823a88`](../commits/e8823a88.md)). The replaced asm carries
+  JAPAN-specific variants beyond the message-id offset the source keeps. Every
+  other commit on this branch was US-only too, but this is the first where the
+  replaced asm is known to differ structurally by region.
+- **Should `DUNGEON_PTR` be a scalar or an array tree-wide?**
+  `SetLeaderAction` needs the scalar spelling; three other files use the array
+  form. They are not byte-interchangeable at that call density, and there is no
+  header declaration to settle it.
+- **Two `volatile` stand-ins remain in `SetLeaderAction`** and are almost
+  certainly not what the original source said — they encode a no-CSE property,
+  not recovered code.
 - **Two species ids in `IsMonsterAffectedByGravelyrockGroundMode` are left raw**
   ([`152f6c7e`](../commits/152f6c7e.md)) and are almost certainly named
   enumerators.
