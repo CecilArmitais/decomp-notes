@@ -1,12 +1,12 @@
-# `decomp-continued` — 319 functions across 66 commits
+# `decomp-continued` — 329 functions across 67 commits
 
 | | |
 |---|---|
 | **Branch** | `decomp-continued` |
 | **PR** | *none, and none planned — see below* |
 | **Base** | `upstream/main` @ `86ec9772` |
-| **Commits** | 66 |
-| **Functions decompiled** | **319** |
+| **Commits** | 67 |
+| **Functions decompiled** | **329** |
 | **Verified** | `build/pmdsky.us/pmdsky.us.nds: OK` at every commit; the branch tip additionally builds **EU and JP** matching |
 | **Notes written** | **retroactively**, after commit 50 |
 
@@ -107,6 +107,7 @@ splitting it later feasible.
 | `14f8c511` | Decomp ten more move-effect wrappers in overlay_29 | 10 | [notes](../commits/14f8c511.md) |
 | `7c02eea6` | Decomp ten more move-effect wrappers in overlay_29 | 10 | [notes](../commits/7c02eea6.md) |
 | `dada4f8d` | Decomp ten more move-effect wrappers in overlay_29 | 10 | [notes](../commits/dada4f8d.md) |
+| `edd80366` | Decomp ten more move-effect wrappers in overlay_29 | 10 | [notes](../commits/edd80366.md) |
 
 ## Cross-cutting changes a reviewer should weigh
 
