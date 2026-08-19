@@ -1,12 +1,12 @@
-# `decomp-continued` — 329 functions across 67 commits
+# `decomp-continued` — 379 functions across 72 commits
 
 | | |
 |---|---|
 | **Branch** | `decomp-continued` |
 | **PR** | *none, and none planned — see below* |
 | **Base** | `upstream/main` @ `86ec9772` |
-| **Commits** | 67 |
-| **Functions decompiled** | **329** |
+| **Commits** | 72 |
+| **Functions decompiled** | **379** |
 | **Verified** | `build/pmdsky.us/pmdsky.us.nds: OK` at every commit; the branch tip additionally builds **EU and JP** matching |
 | **Notes written** | **retroactively**, after commit 50 |
 
@@ -108,12 +108,26 @@ splitting it later feasible.
 | `7c02eea6` | Decomp ten more move-effect wrappers in overlay_29 | 10 | [notes](../commits/7c02eea6.md) |
 | `dada4f8d` | Decomp ten more move-effect wrappers in overlay_29 | 10 | [notes](../commits/dada4f8d.md) |
 | `edd80366` | Decomp ten more move-effect wrappers in overlay_29 | 10 | [notes](../commits/edd80366.md) |
+| `80e48105` | Decomp ten more move-effect wrappers in overlay_29 | 10 | [notes](../commits/80e48105.md) |
+| `14d9204c` | Decomp the last ten simple move-effect wrappers | 10 | [notes](../commits/14d9204c.md) |
+| `e029b3cb` | Decomp the dungeon RNG mode setters and nine sound helpers | 10 | [notes](../commits/e029b3cb.md) |
+| `ba4d07a4` | Decomp ten stat-boost move effects; drop a conflicting extern | 10 | [notes](../commits/ba4d07a4.md) |
+| `6174b66b` | Decomp nine more move effects and DebugRecruitingEnabled | 10 | [notes](../commits/6174b66b.md) |
 
 ## Cross-cutting changes a reviewer should weigh
 
 These are the changes that touch types shared with the rest of the tree. They are
 the ones most likely to be contentious, and they are collected here so nobody has
 to find them across 50 commits.
+
+### A stale extern replaced: `BoostDefensiveStat` and the stat-index globals
+
+`src/overlay_29_0232E250.c` declared `ATK_STAT_IDX` / `SPATK_STAT_IDX` as `s32`
+and `BoostDefensiveStat` with an `(s32, s16)` tail, all contradicting
+`include/move_orb_effects.h`, where the stat is a one-`int` `struct StatIndex`
+passed by value ([`ba4d07a4`](../commits/ba4d07a4.md)). The declarations lived in
+different translation units, so the compiler never saw the conflict and the ROM
+matched regardless. Replaced with an include of the canonical header.
 
 ### A shared prototype widened: `CanMonsterMoveInDirection`
 
