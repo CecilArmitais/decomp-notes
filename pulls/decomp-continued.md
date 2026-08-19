@@ -1,12 +1,12 @@
-# `decomp-continued` — 309 functions across 65 commits
+# `decomp-continued` — 319 functions across 66 commits
 
 | | |
 |---|---|
 | **Branch** | `decomp-continued` |
 | **PR** | *none, and none planned — see below* |
 | **Base** | `upstream/main` @ `86ec9772` |
-| **Commits** | 65 |
-| **Functions decompiled** | **309** |
+| **Commits** | 66 |
+| **Functions decompiled** | **319** |
 | **Verified** | `build/pmdsky.us/pmdsky.us.nds: OK` at every commit; the branch tip additionally builds **EU and JP** matching |
 | **Notes written** | **retroactively**, after commit 50 |
 
@@ -106,6 +106,7 @@ splitting it later feasible.
 | `f504e6de` | Decomp ten move-effect wrappers in overlay_29 | 10 | [notes](../commits/f504e6de.md) |
 | `14f8c511` | Decomp ten more move-effect wrappers in overlay_29 | 10 | [notes](../commits/14f8c511.md) |
 | `7c02eea6` | Decomp ten more move-effect wrappers in overlay_29 | 10 | [notes](../commits/7c02eea6.md) |
+| `dada4f8d` | Decomp ten more move-effect wrappers in overlay_29 | 10 | [notes](../commits/dada4f8d.md) |
 
 ## Cross-cutting changes a reviewer should weigh
 
@@ -288,11 +289,12 @@ matching build could report:
 2. **`precommit.py` stripped `; 0xADDRESS` label comments**, which
    `extract_function.py` needs to locate a function. Restored in
    [`c356d53c`](../commits/c356d53c.md); the rule now keeps that form.
-3. **`build-tools/build.sh` cannot express a deletion.** It copies changed files
-   into a clean clone, but `extract_function.py` sometimes *removes* an emptied
-   `asm/*.s`, and `common.mk` globs `asm/*.s` — so the stale file returns and is
-   assembled. Found in [`7c02eea6`](../commits/7c02eea6.md); worked around with a
-   direct `docker run` that `rm`s the deleted paths.
+3. **`build-tools/build.sh` could not express a deletion** — it copies changed
+   files into a clean clone, but `extract_function.py` *removes* an emptied
+   `asm/*.s` and `common.mk` globs `asm/*.s`, so the stale file returned and was
+   assembled. Found in [`7c02eea6`](../commits/7c02eea6.md); **fixed** during
+   [`dada4f8d`](../commits/dada4f8d.md) — an absent path is now removed from the
+   clone, so `git status --short` output can be passed wholesale.
 4. **`extract_function.py` fails with `Start line None`** on a signature written
    `struct item *Foo(...)` — it parses the name as `*Foo`. Write
    `struct item* Foo(...)`.
