@@ -1,12 +1,12 @@
-# `decomp-continued` — 299 functions across 64 commits
+# `decomp-continued` — 309 functions across 65 commits
 
 | | |
 |---|---|
 | **Branch** | `decomp-continued` |
 | **PR** | *none, and none planned — see below* |
 | **Base** | `upstream/main` @ `86ec9772` |
-| **Commits** | 64 |
-| **Functions decompiled** | **299** |
+| **Commits** | 65 |
+| **Functions decompiled** | **309** |
 | **Verified** | `build/pmdsky.us/pmdsky.us.nds: OK` at every commit; the branch tip additionally builds **EU and JP** matching |
 | **Notes written** | **retroactively**, after commit 50 |
 
@@ -105,6 +105,7 @@ splitting it later feasible.
 | `883be163` | Make SetLeaderAction match EU and JP | -- | [notes](../commits/883be163.md) |
 | `f504e6de` | Decomp ten move-effect wrappers in overlay_29 | 10 | [notes](../commits/f504e6de.md) |
 | `14f8c511` | Decomp ten more move-effect wrappers in overlay_29 | 10 | [notes](../commits/14f8c511.md) |
+| `7c02eea6` | Decomp ten more move-effect wrappers in overlay_29 | 10 | [notes](../commits/7c02eea6.md) |
 
 ## Cross-cutting changes a reviewer should weigh
 
@@ -287,11 +288,16 @@ matching build could report:
 2. **`precommit.py` stripped `; 0xADDRESS` label comments**, which
    `extract_function.py` needs to locate a function. Restored in
    [`c356d53c`](../commits/c356d53c.md); the rule now keeps that form.
-3. **`extract_function.py` fails with `Start line None`** on a signature written
+3. **`build-tools/build.sh` cannot express a deletion.** It copies changed files
+   into a clean clone, but `extract_function.py` sometimes *removes* an emptied
+   `asm/*.s`, and `common.mk` globs `asm/*.s` — so the stale file returns and is
+   assembled. Found in [`7c02eea6`](../commits/7c02eea6.md); worked around with a
+   direct `docker run` that `rm`s the deleted paths.
+4. **`extract_function.py` fails with `Start line None`** on a signature written
    `struct item *Foo(...)` — it parses the name as `*Foo`. Write
    `struct item* Foo(...)`.
 
-4. **`tools/m2ctx/m2ctx.sh` passes `-include global.h`**, which does not exist in
+5. **`tools/m2ctx/m2ctx.sh` passes `-include global.h`**, which does not exist in
    this repo (it is `include/global.pch`). It does not fail loudly — it emits a
    12-line context of predefined macros only. Found in
    [`e8823a88`](../commits/e8823a88.md); substituting `include/global.pch` works.
