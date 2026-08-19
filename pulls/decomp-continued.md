@@ -7,7 +7,7 @@
 | **Base** | `upstream/main` @ `86ec9772` |
 | **Commits** | 62 |
 | **Functions decompiled** | **279** |
-| **Verified** | matching build at every commit, `build/pmdsky.us/pmdsky.us.nds: OK`; `SetLeaderAction` additionally verified on EU and JP |
+| **Verified** | `build/pmdsky.us/pmdsky.us.nds: OK` at every commit; the branch tip additionally builds **EU and JP** matching |
 | **Notes written** | **retroactively**, after commit 50 |
 
 > **Unverified AI-authored reasoning.** Not part of the decompilation, never
@@ -309,12 +309,6 @@ matching build could report:
   `unk_0201E380`, `unk_02011DF0`, `unk_02032558`, `unk_02028284` among them.
   Their real sizes are unknown and several are probably interior views of larger
   objects.
-- **Every other commit on this branch is US-only.** `SetLeaderAction` is the
-  one function verified on all three targets
-  ([`883be163`](../commits/883be163.md)), after the commit that landed it
-  regressed EU and JP. Nothing has checked whether the rest of the branch still
-  builds EU and JP matching, and it would be cheap to find out —
-  `make -C pmd-sky eu` and `... jp`.
 - **Should `DUNGEON_PTR` be a scalar or an array tree-wide?**
   `SetLeaderAction` needs the scalar spelling; three other files use the array
   form. They are not byte-interchangeable at that call density, and there is no
