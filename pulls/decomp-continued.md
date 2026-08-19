@@ -1,12 +1,12 @@
-# `decomp-continued` — 279 functions across 62 commits
+# `decomp-continued` — 289 functions across 63 commits
 
 | | |
 |---|---|
 | **Branch** | `decomp-continued` |
 | **PR** | *none, and none planned — see below* |
 | **Base** | `upstream/main` @ `86ec9772` |
-| **Commits** | 62 |
-| **Functions decompiled** | **279** |
+| **Commits** | 63 |
+| **Functions decompiled** | **289** |
 | **Verified** | `build/pmdsky.us/pmdsky.us.nds: OK` at every commit; the branch tip additionally builds **EU and JP** matching |
 | **Notes written** | **retroactively**, after commit 50 |
 
@@ -103,6 +103,7 @@ splitting it later feasible.
 | `ac3e2389` | Decomp ten more dungeon-state accessors in overlay_29 | 10 | [notes](../commits/ac3e2389.md) |
 | `e8823a88` | Decomp SetLeaderAction in overlay_29 | 1 | [notes](../commits/e8823a88.md) |
 | `883be163` | Make SetLeaderAction match EU and JP | -- | [notes](../commits/883be163.md) |
+| `f504e6de` | Decomp ten move-effect wrappers in overlay_29 | 10 | [notes](../commits/f504e6de.md) |
 
 ## Cross-cutting changes a reviewer should weigh
 
