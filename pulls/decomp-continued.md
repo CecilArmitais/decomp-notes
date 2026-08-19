@@ -1,13 +1,13 @@
-# `decomp-continued` — 279 functions across 61 commits
+# `decomp-continued` — 279 functions across 62 commits
 
 | | |
 |---|---|
 | **Branch** | `decomp-continued` |
 | **PR** | *none, and none planned — see below* |
 | **Base** | `upstream/main` @ `86ec9772` |
-| **Commits** | 61 |
+| **Commits** | 62 |
 | **Functions decompiled** | **279** |
-| **Verified** | matching build at every commit, `build/pmdsky.us/pmdsky.us.nds: OK` (US only; see the JP caveat below) |
+| **Verified** | matching build at every commit, `build/pmdsky.us/pmdsky.us.nds: OK`; `SetLeaderAction` additionally verified on EU and JP |
 | **Notes written** | **retroactively**, after commit 50 |
 
 > **Unverified AI-authored reasoning.** Not part of the decompilation, never
@@ -102,6 +102,7 @@ splitting it later feasible.
 | `bb3a61e8` | Decomp ten dungeon-state accessors in overlay_29 | 10 | [notes](../commits/bb3a61e8.md) |
 | `ac3e2389` | Decomp ten more dungeon-state accessors in overlay_29 | 10 | [notes](../commits/ac3e2389.md) |
 | `e8823a88` | Decomp SetLeaderAction in overlay_29 | 1 | [notes](../commits/e8823a88.md) |
+| `883be163` | Make SetLeaderAction match EU and JP | -- | [notes](../commits/883be163.md) |
 
 ## Cross-cutting changes a reviewer should weigh
 
@@ -308,11 +309,12 @@ matching build could report:
   `unk_0201E380`, `unk_02011DF0`, `unk_02032558`, `unk_02028284` among them.
   Their real sizes are unknown and several are probably interior views of larger
   objects.
-- **The JP build is unverified for `SetLeaderAction`** and is expected not to
-  match ([`e8823a88`](../commits/e8823a88.md)). The replaced asm carries
-  JAPAN-specific variants beyond the message-id offset the source keeps. Every
-  other commit on this branch was US-only too, but this is the first where the
-  replaced asm is known to differ structurally by region.
+- **Every other commit on this branch is US-only.** `SetLeaderAction` is the
+  one function verified on all three targets
+  ([`883be163`](../commits/883be163.md)), after the commit that landed it
+  regressed EU and JP. Nothing has checked whether the rest of the branch still
+  builds EU and JP matching, and it would be cheap to find out —
+  `make -C pmd-sky eu` and `... jp`.
 - **Should `DUNGEON_PTR` be a scalar or an array tree-wide?**
   `SetLeaderAction` needs the scalar spelling; three other files use the array
   form. They are not byte-interchangeable at that call density, and there is no
