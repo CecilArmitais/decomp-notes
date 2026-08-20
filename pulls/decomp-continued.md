@@ -1,12 +1,12 @@
-# `decomp-continued` — 476 functions across 82 commits
+# `decomp-continued` — 480 functions across 83 commits
 
 | | |
 |---|---|
 | **Branch** | `decomp-continued` |
 | **PR** | *none, and none planned — see below* |
 | **Base** | `upstream/main` @ `86ec9772` |
-| **Commits** | 82 |
-| **Functions decompiled** | **476** |
+| **Commits** | 83 |
+| **Functions decompiled** | **480** |
 | **Verified** | `build/pmdsky.us/pmdsky.us.nds: OK` at every commit; the branch tip additionally builds **EU and JP** matching |
 | **Notes written** | **retroactively**, after commit 50 |
 
@@ -123,6 +123,7 @@ splitting it later feasible.
 | `0587a6ef` | Correct SetActionUseMovePlayer's parameter types | -- | [notes](../commits/0587a6ef.md) |
 | `901ba2aa` | Decomp five more leftover single-function asm files | 5 | [notes](../commits/901ba2aa.md) |
 | `78b52f9d` | Decomp five more leftover single-function asm files | 5 | [notes](../commits/78b52f9d.md) |
+| `658a92a8` | Decomp four leftover single-function asm files | 4 | [notes](../commits/658a92a8.md) |
 
 ## Cross-cutting changes a reviewer should weigh
 
