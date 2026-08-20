@@ -1,4 +1,4 @@
-# `decomp-continued` — 500 functions across 87 commits
+# `decomp-continued` — 505 functions across 88 commits
 
 | | |
 |---|---|
@@ -128,6 +128,7 @@ splitting it later feasible.
 | `8cfb04e1` | Decomp five leftover single-function asm files | 5 | [notes](../commits/8cfb04e1.md) |
 | `19c62d4b` | Decomp five leftover single-function asm files; fix three stale declarations | 5 | [notes](../commits/19c62d4b.md) |
 | `159235da` | Decomp five leftover single-function asm files | 5 | [notes](../commits/159235da.md) |
+| `5ffad87a` | Decomp five leftover single-function asm files | 5 | [notes](../commits/5ffad87a.md) |
 
 ## Cross-cutting changes a reviewer should weigh
 
