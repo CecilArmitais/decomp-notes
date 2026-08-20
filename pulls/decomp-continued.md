@@ -3,10 +3,10 @@
 | | |
 |---|---|
 | **Branch** | `decomp-continued` |
-| **PR** | *none, and none planned — see below* |
+| **PR** | *open — number to be filled in* |
 | **Base** | `upstream/main` @ `86ec9772` |
-| **Commits** | 83 |
-| **Functions decompiled** | **480** |
+| **Commits** | 88 |
+| **Functions decompiled** | **505** |
 | **Verified** | `build/pmdsky.us/pmdsky.us.nds: OK` at every commit; the branch tip additionally builds **EU and JP** matching |
 | **Notes written** | **retroactively**, after commit 50 |
 
@@ -21,21 +21,24 @@
 > reconstructs them by guess. Where a note is silent on what was tried, read that
 > as "not recorded", never as "nothing was tried".
 
-## What this branch is, and what it is not
+## What this branch is
 
-This is **not a pull request branch.** It was opened after the decision to stop
-routing work through PRs, which were taking too long to get through review, in
-favour of *"going as far as we can"* on one long-running branch. It is therefore
-**large, unreviewed, and not shaped for review** — 50 commits touching seven
-subsystems, where a PR branch would have been one subsystem.
+It was opened after the decision to stop routing work through PRs, which were
+taking too long to get through review, in favour of *"going as far as we can"*
+on one long-running branch. It is therefore **large and shaped by that** — 88
+commits touching a dozen subsystems, where a PR branch would have been one.
 
-If any of it is ever proposed upstream, it should be **split by subsystem**
-first. The natural seams are the commit clusters in the table below: actor
-resolvers, team-member accessors, DSE track events, bag/item accessors, menu
-accessors, and the window system.
+It is now being proposed upstream anyway, at the maintainer's request, to be
+reviewed as time allows rather than split up first. **Reviewers should know what
+they are getting**: a branch assembled without review pacing it.
+
+If splitting it ever becomes preferable, the natural seams are the commit
+clusters in the table below: actor resolvers, team-member accessors, DSE track
+events, bag/item accessors, menu accessors, the window system, `SetLeaderAction`
+and its neighbours, and eleven file-fragmentation cleanup sweeps.
 
 **Every commit builds matching on its own.** That is the one property that makes
-splitting it later feasible.
+both reviewing it incrementally and splitting it later feasible.
 
 ## Commits
 
