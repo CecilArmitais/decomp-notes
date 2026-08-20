@@ -1,12 +1,12 @@
-# `decomp-continued` — 451 functions across 76 commits
+# `decomp-continued` — 456 functions across 77 commits
 
 | | |
 |---|---|
 | **Branch** | `decomp-continued` |
 | **PR** | *none, and none planned — see below* |
 | **Base** | `upstream/main` @ `86ec9772` |
-| **Commits** | 76 |
-| **Functions decompiled** | **451** |
+| **Commits** | 77 |
+| **Functions decompiled** | **456** |
 | **Verified** | `build/pmdsky.us/pmdsky.us.nds: OK` at every commit; the branch tip additionally builds **EU and JP** matching |
 | **Notes written** | **retroactively**, after commit 50 |
 
@@ -117,6 +117,7 @@ splitting it later feasible.
 | `1bcd9852` | Decomp eight deferred stat helpers; const StatIndex globals | 10 | [notes](../commits/1bcd9852.md) |
 | `185c390e` | Decomp ten message-log accessors in overlay_29 | 10 | [notes](../commits/185c390e.md) |
 | `25d5994b` | Decomp ten dungeon utilities; drop a stale extern | 10 | [notes](../commits/25d5994b.md) |
+| `b088fd5f` | Decomp five leftover single-function asm files | 5 | [notes](../commits/b088fd5f.md) |
 
 ## Cross-cutting changes a reviewer should weigh
 
