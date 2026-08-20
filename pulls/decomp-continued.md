@@ -1,11 +1,11 @@
-# `decomp-continued` — 466 functions across 79 commits
+# `decomp-continued` — 466 functions across 80 commits
 
 | | |
 |---|---|
 | **Branch** | `decomp-continued` |
 | **PR** | *none, and none planned — see below* |
 | **Base** | `upstream/main` @ `86ec9772` |
-| **Commits** | 79 |
+| **Commits** | 80 |
 | **Functions decompiled** | **466** |
 | **Verified** | `build/pmdsky.us/pmdsky.us.nds: OK` at every commit; the branch tip additionally builds **EU and JP** matching |
 | **Notes written** | **retroactively**, after commit 50 |
@@ -120,12 +120,23 @@ splitting it later feasible.
 | `b088fd5f` | Decomp five leftover single-function asm files | 5 | [notes](../commits/b088fd5f.md) |
 | `80d0e710` | Decomp five more leftover single-function asm files | 5 | [notes](../commits/80d0e710.md) |
 | `ec25edd9` | Decomp five more leftover single-function asm files | 5 | [notes](../commits/ec25edd9.md) |
+| `0587a6ef` | Correct SetActionUseMovePlayer's parameter types | -- | [notes](../commits/0587a6ef.md) |
 
 ## Cross-cutting changes a reviewer should weigh
 
 These are the changes that touch types shared with the rest of the tree. They are
 the ones most likely to be contentious, and they are collected here so nobody has
 to find them across 50 commits.
+
+### A parameter type only a caller can see: `SetActionUseMovePlayer`
+
+Landed as `(struct action_data *, u8, u8)` and corrected to `(…, s32, s16)`
+([`0587a6ef`](../commits/0587a6ef.md)). The callee stores both parameters with
+`strb`, so `u8`, `s16` and `s32` all match its own asm; only `SetLeaderAction`'s
+call site — which passes one argument unchanged and sign-extends the other to 16
+bits — distinguishes them. The same failure mode as
+`CanMonsterMoveInDirection`'s `u16` parameter. **A parameter whose only use is a
+narrowing store cannot be typed from the callee alone.**
 
 ### The stat-index globals are now `const`
 
@@ -336,12 +347,6 @@ matching build could report:
 
 ## Open questions
 
-- **`SetActionUseMovePlayer` has two contradictory declarations that cannot be
-  reconciled yet** ([`ec25edd9`](../commits/ec25edd9.md)). Its own header says
-  `void`; `SetLeaderAction` declares it `extern s32 ...()` and only matches with
-  that form. Deleting the provisional extern breaks three modules' checksums, so
-  it is left in place. One of the two is wrong and the bytes do not yet say
-  which.
 - **Do the two enum sentinels belong upstream at all?** They are the branch's
   most invasive change and the one most likely to be rejected on policy rather
   than evidence.
