@@ -1,12 +1,12 @@
-# `decomp-continued` — 604 functions across 90 commits
+# `decomp-continued` — 654 functions across 91 commits
 
 | | |
 |---|---|
 | **Branch** | `decomp-continued` |
 | **PR** | *open — number to be filled in* |
 | **Base** | `upstream/main` @ `86ec9772` |
-| **Commits** | 90 |
-| **Functions decompiled** | **604** |
+| **Commits** | 91 |
+| **Functions decompiled** | **654** |
 | **Verified** | `build/pmdsky.us/pmdsky.us.nds: OK` at every commit; the branch tip additionally builds **EU and JP** matching |
 | **Notes written** | **retroactively**, after commit 50 |
 
@@ -134,6 +134,7 @@ both reviewing it incrementally and splitting it later feasible.
 | `5ffad87a` | Decomp five leftover single-function asm files | 5 | [notes](../commits/5ffad87a.md) |
 | `7658e4f9` | Decomp 50 functions in five themed groups | 50 | [notes](../commits/7658e4f9.md) |
 | `e865b697` | Decomp 49 functions in five themed groups | 49 | [notes](../commits/e865b697.md) |
+| `c34d1196` | Decomp 50 functions in five themed groups | 50 | [notes](../commits/c34d1196.md) |
 
 ## Cross-cutting changes a reviewer should weigh
 
