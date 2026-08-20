@@ -1,12 +1,12 @@
-# `decomp-continued` — 742 functions across 93 commits
+# `decomp-continued` — 802 functions across 94 commits
 
 | | |
 |---|---|
 | **Branch** | `decomp-continued` |
-| **PR** | *open — number to be filled in* |
-| **Base** | `upstream/main` @ `86ec9772` |
-| **Commits** | 93 |
-| **Functions decompiled** | **742** |
+| **PR** | **#290 merged** into `upstream/main` (through `5ffad87a`). The **8 commits since** — 247 functions — are the open work; see the table below. |
+| **Base** | originally `upstream/main` @ `86ec9772`; since PR #290 merged, the merge-base is `5ffad87a` and `upstream/main` is `da4f51d4` |
+| **Commits** | 94 |
+| **Functions decompiled** | **802** |
 | **Verified** | `build/pmdsky.us/pmdsky.us.nds: OK` at every commit. **EU and JP** were additionally verified at the `a6ce70e5` tip and have *not* been re-run since |
 | **Notes written** | **retroactively**, after commit 50 |
 
@@ -137,6 +137,8 @@ both reviewing it incrementally and splitting it later feasible.
 | `c34d1196` | Decomp 50 functions in five themed groups | 50 | [notes](../commits/c34d1196.md) |
 | `a6ce70e5` | Decomp 50 functions in five themed groups | 50 | [notes](../commits/a6ce70e5.md) |
 | `c9d0c766` | Decomp 38 functions across four groups; drop a group to an inlining trap | 38 | [notes](../commits/c9d0c766.md) |
+| `1dea0a25` | Decomp 10 DWC functions into lib/src; they need the SDK build rule | 10 | [notes](../commits/1dea0a25.md) |
+| `090d9f31` | Decomp 50 functions in five groups | 50 | [notes](../commits/090d9f31.md) |
 
 ## Cross-cutting changes a reviewer should weigh
 
