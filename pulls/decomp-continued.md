@@ -1,12 +1,12 @@
-# `decomp-continued` — 461 functions across 78 commits
+# `decomp-continued` — 466 functions across 79 commits
 
 | | |
 |---|---|
 | **Branch** | `decomp-continued` |
 | **PR** | *none, and none planned — see below* |
 | **Base** | `upstream/main` @ `86ec9772` |
-| **Commits** | 78 |
-| **Functions decompiled** | **461** |
+| **Commits** | 79 |
+| **Functions decompiled** | **466** |
 | **Verified** | `build/pmdsky.us/pmdsky.us.nds: OK` at every commit; the branch tip additionally builds **EU and JP** matching |
 | **Notes written** | **retroactively**, after commit 50 |
 
@@ -119,6 +119,7 @@ splitting it later feasible.
 | `25d5994b` | Decomp ten dungeon utilities; drop a stale extern | 10 | [notes](../commits/25d5994b.md) |
 | `b088fd5f` | Decomp five leftover single-function asm files | 5 | [notes](../commits/b088fd5f.md) |
 | `80d0e710` | Decomp five more leftover single-function asm files | 5 | [notes](../commits/80d0e710.md) |
+| `ec25edd9` | Decomp five more leftover single-function asm files | 5 | [notes](../commits/ec25edd9.md) |
 
 ## Cross-cutting changes a reviewer should weigh
 
@@ -335,6 +336,12 @@ matching build could report:
 
 ## Open questions
 
+- **`SetActionUseMovePlayer` has two contradictory declarations that cannot be
+  reconciled yet** ([`ec25edd9`](../commits/ec25edd9.md)). Its own header says
+  `void`; `SetLeaderAction` declares it `extern s32 ...()` and only matches with
+  that form. Deleting the provisional extern breaks three modules' checksums, so
+  it is left in place. One of the two is wrong and the bytes do not yet say
+  which.
 - **Do the two enum sentinels belong upstream at all?** They are the branch's
   most invasive change and the one most likely to be rejected on policy rather
   than evidence.
