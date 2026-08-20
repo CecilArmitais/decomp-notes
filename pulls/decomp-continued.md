@@ -1,12 +1,12 @@
-# `decomp-continued` — 421 functions across 73 commits
+# `decomp-continued` — 431 functions across 74 commits
 
 | | |
 |---|---|
 | **Branch** | `decomp-continued` |
 | **PR** | *none, and none planned — see below* |
 | **Base** | `upstream/main` @ `86ec9772` |
-| **Commits** | 73 |
-| **Functions decompiled** | **421** |
+| **Commits** | 74 |
+| **Functions decompiled** | **431** |
 | **Verified** | `build/pmdsky.us/pmdsky.us.nds: OK` at every commit; the branch tip additionally builds **EU and JP** matching |
 | **Notes written** | **retroactively**, after commit 50 |
 
@@ -114,12 +114,21 @@ splitting it later feasible.
 | `ba4d07a4` | Decomp ten stat-boost move effects; drop a conflicting extern | 10 | [notes](../commits/ba4d07a4.md) |
 | `6174b66b` | Decomp nine more move effects and DebugRecruitingEnabled | 10 | [notes](../commits/6174b66b.md) |
 | `c4338759` | Decomp 42 small dungeon-mode functions in overlay_29 | 42 | [notes](../commits/c4338759.md) |
+| `1bcd9852` | Decomp eight deferred stat helpers; const StatIndex globals | 10 | [notes](../commits/1bcd9852.md) |
 
 ## Cross-cutting changes a reviewer should weigh
 
 These are the changes that touch types shared with the rest of the tree. They are
 the ones most likely to be contentious, and they are collected here so nobody has
 to find them across 50 commits.
+
+### The stat-index globals are now `const`
+
+`ATK_STAT_IDX` and `SPATK_STAT_IDX` are declared `const` in all thirteen `src/`
+files that reference them ([`1bcd9852`](../commits/1bcd9852.md)). This is what
+makes eight stat-helper wrappers match: a call with a stack argument stores to
+memory, and a non-`const` global's load cannot hoist above those stores. Every
+previously-matching caller still matches after the change.
 
 ### A stale extern replaced: `BoostDefensiveStat` and the stat-index globals
 
