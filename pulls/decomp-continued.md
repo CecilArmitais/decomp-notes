@@ -1,13 +1,13 @@
-# `decomp-continued` — 704 functions across 92 commits
+# `decomp-continued` — 742 functions across 93 commits
 
 | | |
 |---|---|
 | **Branch** | `decomp-continued` |
 | **PR** | *open — number to be filled in* |
 | **Base** | `upstream/main` @ `86ec9772` |
-| **Commits** | 92 |
-| **Functions decompiled** | **704** |
-| **Verified** | `build/pmdsky.us/pmdsky.us.nds: OK` at every commit; the branch tip additionally builds **EU and JP** matching |
+| **Commits** | 93 |
+| **Functions decompiled** | **742** |
+| **Verified** | `build/pmdsky.us/pmdsky.us.nds: OK` at every commit. **EU and JP** were additionally verified at the `a6ce70e5` tip and have *not* been re-run since |
 | **Notes written** | **retroactively**, after commit 50 |
 
 > **Unverified AI-authored reasoning.** Not part of the decompilation, never
@@ -136,6 +136,7 @@ both reviewing it incrementally and splitting it later feasible.
 | `e865b697` | Decomp 49 functions in five themed groups | 49 | [notes](../commits/e865b697.md) |
 | `c34d1196` | Decomp 50 functions in five themed groups | 50 | [notes](../commits/c34d1196.md) |
 | `a6ce70e5` | Decomp 50 functions in five themed groups | 50 | [notes](../commits/a6ce70e5.md) |
+| `c9d0c766` | Decomp 38 functions across four groups; drop a group to an inlining trap | 38 | [notes](../commits/c9d0c766.md) |
 
 ## Cross-cutting changes a reviewer should weigh
 
