@@ -1,12 +1,12 @@
-# `decomp-continued` — 379 functions across 72 commits
+# `decomp-continued` — 421 functions across 73 commits
 
 | | |
 |---|---|
 | **Branch** | `decomp-continued` |
 | **PR** | *none, and none planned — see below* |
 | **Base** | `upstream/main` @ `86ec9772` |
-| **Commits** | 72 |
-| **Functions decompiled** | **379** |
+| **Commits** | 73 |
+| **Functions decompiled** | **421** |
 | **Verified** | `build/pmdsky.us/pmdsky.us.nds: OK` at every commit; the branch tip additionally builds **EU and JP** matching |
 | **Notes written** | **retroactively**, after commit 50 |
 
@@ -113,6 +113,7 @@ splitting it later feasible.
 | `e029b3cb` | Decomp the dungeon RNG mode setters and nine sound helpers | 10 | [notes](../commits/e029b3cb.md) |
 | `ba4d07a4` | Decomp ten stat-boost move effects; drop a conflicting extern | 10 | [notes](../commits/ba4d07a4.md) |
 | `6174b66b` | Decomp nine more move effects and DebugRecruitingEnabled | 10 | [notes](../commits/6174b66b.md) |
+| `c4338759` | Decomp 42 small dungeon-mode functions in overlay_29 | 42 | [notes](../commits/c4338759.md) |
 
 ## Cross-cutting changes a reviewer should weigh
 
