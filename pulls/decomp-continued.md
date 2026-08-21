@@ -3,8 +3,8 @@
 | | |
 |---|---|
 | **Branch** | `decomp-continued` |
-| **PR** | **#290 merged** into `upstream/main` (through `5ffad87a`). The **14 commits since** — 447 functions — are the open work; see the table below. |
-| **Base** | originally `upstream/main` @ `86ec9772`; since PR #290 merged, the merge-base is `5ffad87a` and `upstream/main` is `da4f51d4` |
+| **PR** | **#290 merged** (through `5ffad87a`), then **#291 merged** (through `6425efdd`, as `440d7b7d`). **Nothing is open** — every commit in the table below is now in `upstream/main`. |
+| **Base** | originally `upstream/main` @ `86ec9772`; after #290 the merge-base was `5ffad87a`; after #291 the branch is fully merged and `upstream/main` is `440d7b7d` |
 | **Commits** | 100 |
 | **Functions decompiled** | **1002** |
 | **Verified** | `build/pmdsky.us/pmdsky.us.nds: OK` at every commit. **EU and JP** were additionally verified at the `a6ce70e5` tip and have *not* been re-run since |
