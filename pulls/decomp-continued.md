@@ -1,12 +1,12 @@
-# `decomp-continued` — 852 functions across 95 commits
+# `decomp-continued` — 901 functions across 96 commits
 
 | | |
 |---|---|
 | **Branch** | `decomp-continued` |
-| **PR** | **#290 merged** into `upstream/main` (through `5ffad87a`). The **9 commits since** — 297 functions — are the open work; see the table below. |
+| **PR** | **#290 merged** into `upstream/main` (through `5ffad87a`). The **10 commits since** — 346 functions — are the open work; see the table below. |
 | **Base** | originally `upstream/main` @ `86ec9772`; since PR #290 merged, the merge-base is `5ffad87a` and `upstream/main` is `da4f51d4` |
-| **Commits** | 95 |
-| **Functions decompiled** | **852** |
+| **Commits** | 96 |
+| **Functions decompiled** | **901** |
 | **Verified** | `build/pmdsky.us/pmdsky.us.nds: OK` at every commit. **EU and JP** were additionally verified at the `a6ce70e5` tip and have *not* been re-run since |
 | **Notes written** | **retroactively**, after commit 50 |
 
@@ -140,6 +140,7 @@ both reviewing it incrementally and splitting it later feasible.
 | `1dea0a25` | Decomp 10 DWC functions into lib/src; they need the SDK build rule | 10 | [notes](../commits/1dea0a25.md) |
 | `090d9f31` | Decomp 50 functions in five groups | 50 | [notes](../commits/090d9f31.md) |
 | `e6530b43` | Decomp 50 functions in five groups | 50 | [notes](../commits/e6530b43.md) |
+| `c61f8ec2` | Decomp 49 functions in five groups | 49 | [notes](../commits/c61f8ec2.md) |
 
 ## Cross-cutting changes a reviewer should weigh
 
