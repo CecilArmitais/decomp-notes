@@ -1,12 +1,12 @@
-# `decomp-continued` — 901 functions across 96 commits
+# `decomp-continued` — 949 functions across 97 commits
 
 | | |
 |---|---|
 | **Branch** | `decomp-continued` |
-| **PR** | **#290 merged** into `upstream/main` (through `5ffad87a`). The **10 commits since** — 346 functions — are the open work; see the table below. |
+| **PR** | **#290 merged** into `upstream/main` (through `5ffad87a`). The **11 commits since** — 394 functions — are the open work; see the table below. |
 | **Base** | originally `upstream/main` @ `86ec9772`; since PR #290 merged, the merge-base is `5ffad87a` and `upstream/main` is `da4f51d4` |
-| **Commits** | 96 |
-| **Functions decompiled** | **901** |
+| **Commits** | 97 |
+| **Functions decompiled** | **949** |
 | **Verified** | `build/pmdsky.us/pmdsky.us.nds: OK` at every commit. **EU and JP** were additionally verified at the `a6ce70e5` tip and have *not* been re-run since |
 | **Notes written** | **retroactively**, after commit 50 |
 
@@ -141,6 +141,7 @@ both reviewing it incrementally and splitting it later feasible.
 | `090d9f31` | Decomp 50 functions in five groups | 50 | [notes](../commits/090d9f31.md) |
 | `e6530b43` | Decomp 50 functions in five groups | 50 | [notes](../commits/e6530b43.md) |
 | `c61f8ec2` | Decomp 49 functions in five groups | 49 | [notes](../commits/c61f8ec2.md) |
+| `f968c890` | Decomp 48 functions in five groups | 48 | [notes](../commits/f968c890.md) |
 
 ## Cross-cutting changes a reviewer should weigh
 
