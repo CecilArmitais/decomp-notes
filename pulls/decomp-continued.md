@@ -1,12 +1,12 @@
-# `decomp-continued` — 986 functions across 99 commits
+# `decomp-continued` — 1002 functions across 100 commits
 
 | | |
 |---|---|
 | **Branch** | `decomp-continued` |
-| **PR** | **#290 merged** into `upstream/main` (through `5ffad87a`). The **13 commits since** — 431 functions — are the open work; see the table below. |
+| **PR** | **#290 merged** into `upstream/main` (through `5ffad87a`). The **14 commits since** — 447 functions — are the open work; see the table below. |
 | **Base** | originally `upstream/main` @ `86ec9772`; since PR #290 merged, the merge-base is `5ffad87a` and `upstream/main` is `da4f51d4` |
-| **Commits** | 99 |
-| **Functions decompiled** | **986** |
+| **Commits** | 100 |
+| **Functions decompiled** | **1002** |
 | **Verified** | `build/pmdsky.us/pmdsky.us.nds: OK` at every commit. **EU and JP** were additionally verified at the `a6ce70e5` tip and have *not* been re-run since |
 | **Notes written** | **retroactively**, after commit 50 |
 
@@ -35,7 +35,7 @@ they are getting**: a branch assembled without review pacing it.
 If splitting it ever becomes preferable, the natural seams are the commit
 clusters in the table below: actor resolvers, team-member accessors, DSE track
 events, bag/item accessors, menu accessors, the window system, `SetLeaderAction`
-and its neighbours, and eleven file-fragmentation cleanup sweeps.
+and its neighbours, and twelve file-fragmentation cleanup sweeps.
 
 **Every commit builds matching on its own.** That is the one property that makes
 both reviewing it incrementally and splitting it later feasible.
@@ -144,6 +144,7 @@ both reviewing it incrementally and splitting it later feasible.
 | `f968c890` | Decomp 48 functions in five groups | 48 | [notes](../commits/f968c890.md) |
 | `be41c2f3` | Decomp 20 functions, emptying six asm fragments | 20 | [notes](../commits/be41c2f3.md) |
 | `d9df74f0` | Decomp 17 functions, emptying eight asm files | 17 | [notes](../commits/d9df74f0.md) |
+| `6425efdd` | Decomp 16 functions, emptying nine asm files | 16 | [notes](../commits/6425efdd.md) |
 
 ## Cross-cutting changes a reviewer should weigh
 
