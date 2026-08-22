@@ -3,10 +3,10 @@
 | | |
 |---|---|
 | **Branch** | `decomp-continued` |
-| **PR** | **#290 merged** (through `5ffad87a`), then **#291 merged** (through `6425efdd`, as `440d7b7d`). **Nothing is open** — every commit in the table below is now in `upstream/main`. |
-| **Base** | originally `upstream/main` @ `86ec9772`; after #290 the merge-base was `5ffad87a`; after #291 the branch is fully merged and `upstream/main` is `440d7b7d` |
-| **Commits** | 100 |
-| **Functions decompiled** | **1002** |
+| **PR** | **#290 merged** (through `5ffad87a`), then **#291 merged** (through `6425efdd`, as `440d7b7d`). **One commit is unmerged**: `ef8633f9` sits on top of `440d7b7d` and is not yet in a PR. |
+| **Base** | originally `upstream/main` @ `86ec9772`; after #290 the merge-base was `5ffad87a`; after #291 `upstream/main` is `440d7b7d`, which `ef8633f9` builds on |
+| **Commits** | 101 |
+| **Functions decompiled** | **1003** |
 | **Verified** | `build/pmdsky.us/pmdsky.us.nds: OK` at every commit. **EU and JP** were additionally verified at the `a6ce70e5` tip and have *not* been re-run since |
 | **Notes written** | **retroactively**, after commit 50 |
 
@@ -145,6 +145,7 @@ both reviewing it incrementally and splitting it later feasible.
 | `be41c2f3` | Decomp 20 functions, emptying six asm fragments | 20 | [notes](../commits/be41c2f3.md) |
 | `d9df74f0` | Decomp 17 functions, emptying eight asm files | 17 | [notes](../commits/d9df74f0.md) |
 | `6425efdd` | Decomp 16 functions, emptying nine asm files | 16 | [notes](../commits/6425efdd.md) |
+| `ef8633f9` | Decomp ov11_022ED69C; correct BmaHeader field signedness | 1 | [notes](../commits/ef8633f9.md) |
 
 ## Cross-cutting changes a reviewer should weigh
 
