@@ -205,7 +205,8 @@ at all. **If a better construct is found, it should replace this line verbatim.*
   `union damage_source`; and `FreeOtherWrappedMonsters` takes a `u32` unique id
   rather than a `struct entity *`. These are suggestions from this function's
   call sites, not upstream-verified.
-- **Only the US branch is decompiled.** The original asm block carries **50**
-  preprocessor directives, including two wholesale `#ifdef EUROPE`
-  duplications. EU and JP were not built and are not expected to fall out of
-  this commit unchanged.
+- **Only the US branch is decompiled by this commit.** The original asm block
+  carries 21 preprocessor directives, including two wholesale `#ifdef EUROPE`
+  duplications. **Superseded**: [`53d6c360`](53d6c360.md) matches EU and JP as
+  well, and all three ROMs build. Read the two notes together — the EU register
+  allocation there required one change to the code this commit landed.
