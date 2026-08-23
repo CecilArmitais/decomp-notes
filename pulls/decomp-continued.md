@@ -1,12 +1,12 @@
-# `decomp-continued` — 1002 functions across 100 commits
+# `decomp-continued` — 1004 functions across 102 commits
 
 | | |
 |---|---|
 | **Branch** | `decomp-continued` |
-| **PR** | **#290 merged** (through `5ffad87a`), then **#291 merged** (through `6425efdd`, as `440d7b7d`). **One commit is unmerged**: `ef8633f9` sits on top of `440d7b7d` and is not yet in a PR. |
-| **Base** | originally `upstream/main` @ `86ec9772`; after #290 the merge-base was `5ffad87a`; after #291 `upstream/main` is `440d7b7d`, which `ef8633f9` builds on |
-| **Commits** | 101 |
-| **Functions decompiled** | **1003** |
+| **PR** | **#290 merged** (through `5ffad87a`), then **#291 merged** (through `6425efdd`, as `440d7b7d`). **Two commits are unmerged**: `ef8633f9` and `ff65ac0e` sit on top of `440d7b7d` and are not yet in a PR. |
+| **Base** | originally `upstream/main` @ `86ec9772`; after #290 the merge-base was `5ffad87a`; after #291 `upstream/main` is `440d7b7d`, which `ef8633f9` and then `ff65ac0e` build on |
+| **Commits** | 102 |
+| **Functions decompiled** | **1004** |
 | **Verified** | `build/pmdsky.us/pmdsky.us.nds: OK` at every commit. **EU and JP** were additionally verified at the `a6ce70e5` tip and have *not* been re-run since |
 | **Notes written** | **retroactively**, after commit 50 |
 
@@ -146,6 +146,7 @@ both reviewing it incrementally and splitting it later feasible.
 | `d9df74f0` | Decomp 17 functions, emptying eight asm files | 17 | [notes](../commits/d9df74f0.md) |
 | `6425efdd` | Decomp 16 functions, emptying nine asm files | 16 | [notes](../commits/6425efdd.md) |
 | `ef8633f9` | Decomp ov11_022ED69C; correct BmaHeader field signedness | 1 | [notes](../commits/ef8633f9.md) |
+| `ff65ac0e` | Decomp ApplyDamage; fix a message-id parameter type and three field types | 1 | [notes](../commits/ff65ac0e.md) |
 
 ## Cross-cutting changes a reviewer should weigh
 
@@ -252,6 +253,37 @@ other writes a word, and one writes a byte inside the other's word at `0x1B0`.
 They are kept as separate views because a merged struct would have to assert an
 agreement the stores disprove.
 
+### Three field types corrected, and a message-id parameter (`ff65ac0e`)
+
+`ApplyDamage` required `struct monster::bide_damage_tally` `u32` -> `s32`
+(clamped with `strgt`), `struct monster::field_0x168`/`field_0x169` merged into
+one `s16 field_0x168` (read `ldrsh`), and
+`struct dungeon_generation_info::music_table_idx` `u16` -> `s16` (read `ldrsh`).
+Each is forced by a load or store width in the target.
+
+The same commit changes the first parameter of
+`TalkToSecretBazaarNpcStandard`, `ov29_022F0618`,
+`TalkToSecretBazaarNpcWithYesNoMenu` and the `TalkToSecretBazaarNpc` extern from
+`struct entity *` to `s32`. Every caller loads a small constant into `r0`
+(`0xC6B` from ApplyDamage; `0xF32`/`0xF4A`/`0xF4B`/`0xF4C` in
+`asm/overlay_29_02344178.s`), and the three tree functions are one-line
+forwarders whose parameter types their own bodies never constrained. This is the
+same failure mode as `SetActionUseMovePlayer` above: **a parameter that a
+forwarder only passes through cannot be typed from the forwarder.**
+
+### A deliberate declaration divergence: `DUNGEON_PTR` (`ff65ac0e`)
+
+`src/overlay_29_02308FBC.c` declares `extern struct dungeon *DUNGEON_PTR;`
+where `src/dg_camera.c`, `src/dg_uty.c` and `src/dungeon_ai.c` declare
+`extern struct dungeon *DUNGEON_PTR[];` and index `[0]`. The array form lets
+MWCC CSE the pointer load, which costs three instructions the target has.
+
+**No build can catch this** — two declarations in two translation units never
+meet. It is called out here and in the commit note because only a grep finds it.
+The scalar form is arguably the more honest declaration for a single pointer,
+and `src/dungeon_ai_items.c` already spells `BAG_ITEMS_PTR_MIRROR` scalar, but a
+reviewer may want the tree unified one way or the other.
+
 ## Known-imperfect things, listed rather than hidden
 
 ### Duplicate declarations the build cannot catch
@@ -267,6 +299,7 @@ these.** Known outstanding:
 | `UpdateWindow`, `sub_02027B1C` | `overlay_25_init.c` declares both as `char *` | **genuinely wrong** — the value is a window id ([`7f6977e2`](../commits/7f6977e2.md)) |
 | `UpdateWindow`, `sub_02027B1C` | `overlay_13_0238BDA8.c` declares both as `s8` | harmless; left to preserve an upstream annotation |
 | `sub_0202836C` | **five** declarations that disagree: `int`, `s32`, `s8`, `s8`, and `s32` added by [`702c4c85`](../commits/702c4c85.md) | kept out of `window.h` so no overlay sees a conflict |
+| `DUNGEON_PTR` (data) | `overlay_29_02308FBC.c` declares it scalar; `dg_camera.c`, `dg_uty.c`, `dungeon_ai.c` declare `*DUNGEON_PTR[]` | **deliberate** — the array form lets MWCC CSE the load and costs three instructions ([`ff65ac0e`](../commits/ff65ac0e.md)) |
 
 The `overlay_25_init.c` case is the only *incorrect* one. Fixing it properly
 means retyping `ov25_0238B414`'s own parameter and its callers, which is its own
@@ -275,6 +308,27 @@ piece of work.
 **Closed since:** `DeleteWindow`'s provisional declaration in
 `include/main_0202AAA8.h` was replaced by an include when the function landed in
 [`702c4c85`](../commits/702c4c85.md), with all three decompiled callers rebuilt.
+
+### A construct that is a stand-in, not recovered source
+
+[`ff65ac0e`](../commits/ff65ac0e.md) matches `ApplyDamage` with one `volatile`
+read:
+
+```c
+EndCurseClassStatus(defender, defender,
+                    *(volatile u8 *)&dmon->curse_class_status.curse, 0);
+```
+
+Retail compares that byte, branches, and loads it again to pass it, with no
+call or store in between. Without the `volatile`, MWCC allocates the value once
+and emits one instruction fewer. It is standard C, no inline asm is involved,
+and the ROM matches — but `volatile` on a game-data field is not plausible
+source, so this line is **evidence of the mechanism rather than recovered
+code**.
+
+The closest natural form, a `struct curse_class_status *` local, reaches
+1623/1624 rows and differs in exactly one instruction. If a better construct
+turns up it should replace this line verbatim.
 
 ### Signatures the bytes do not determine
 
