@@ -1,13 +1,13 @@
-# `decomp-continued` — 1004 functions across 103 commits
+# `decomp-continued` — 1005 functions across 104 commits
 
 | | |
 |---|---|
 | **Branch** | `decomp-continued` |
-| **PR** | **#290 merged** (through `5ffad87a`), then **#291 merged** (through `6425efdd`, as `440d7b7d`). **Three commits are unmerged**: `ef8633f9`, `ff65ac0e` and `53d6c360` sit on top of `440d7b7d` and are not yet in a PR. |
-| **Base** | originally `upstream/main` @ `86ec9772`; after #290 the merge-base was `5ffad87a`; after #291 `upstream/main` is `440d7b7d`, which `ef8633f9`, `ff65ac0e` and `53d6c360` build on |
-| **Commits** | 103 |
-| **Functions decompiled** | **1004** |
-| **Verified** | `build/pmdsky.us/pmdsky.us.nds: OK` at every commit. **EU and JP** were verified at the `a6ce70e5` tip and again, for all three ROMs, at `53d6c360` |
+| **PR** | **#290 merged** (through `5ffad87a`), then **#291 merged** (through `6425efdd`, as `440d7b7d`). **Four commits are unmerged**: `ef8633f9`, `ff65ac0e`, `53d6c360` and `0053099d` sit on top of `440d7b7d` and are not yet in a PR. |
+| **Base** | originally `upstream/main` @ `86ec9772`; after #290 the merge-base was `5ffad87a`; after #291 `upstream/main` is `440d7b7d`, which `ef8633f9`, `ff65ac0e`, `53d6c360` and `0053099d` build on |
+| **Commits** | 104 |
+| **Functions decompiled** | **1005** |
+| **Verified** | `build/pmdsky.us/pmdsky.us.nds: OK` at every commit. **EU and JP** were verified at the `a6ce70e5` tip, and for all three ROMs at `53d6c360` and again at `0053099d` |
 | **Notes written** | **retroactively**, after commit 50 |
 
 > **Unverified AI-authored reasoning.** Not part of the decompilation, never
@@ -148,6 +148,7 @@ both reviewing it incrementally and splitting it later feasible.
 | `ef8633f9` | Decomp ov11_022ED69C; correct BmaHeader field signedness | 1 | [notes](../commits/ef8633f9.md) |
 | `ff65ac0e` | Decomp ApplyDamage; fix a message-id parameter type and three field types | 1 | [notes](../commits/ff65ac0e.md) |
 | `53d6c360` | ApplyDamage: match the EU and JP builds | 0 | [notes](../commits/53d6c360.md) |
+| `0053099d` | Decomp ApplyDamageAndEffects; ApplyDamage's damage source is signed 16-bit | 1 | [notes](../commits/0053099d.md) |
 
 ## Cross-cutting changes a reviewer should weigh
 
