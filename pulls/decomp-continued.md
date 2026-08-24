@@ -3,11 +3,11 @@
 | | |
 |---|---|
 | **Branch** | `decomp-continued` |
-| **PR** | **#290 merged** (through `5ffad87a`), then **#291 merged** (through `6425efdd`, as `440d7b7d`). **Four commits are unmerged**: `ef8633f9`, `ff65ac0e`, `53d6c360` and `0053099d` sit on top of `440d7b7d` and are not yet in a PR. |
-| **Base** | originally `upstream/main` @ `86ec9772`; after #290 the merge-base was `5ffad87a`; after #291 `upstream/main` is `440d7b7d`, which `ef8633f9`, `ff65ac0e`, `53d6c360` and `0053099d` build on |
+| **PR** | **#290 merged** (through `5ffad87a`), then **#291 merged** (through `6425efdd`, as `440d7b7d`). **Four commits are unmerged**: `058707bc`, `5271b77a`, `ef68e88d` and `7b76a1b2` sit on top of `51c365db` and are not yet in a PR. |
+| **Base** | originally `upstream/main` @ `86ec9772`; after #290 the merge-base was `5ffad87a`; after #291 it was `440d7b7d`. **Rebased 2026-08-24 onto `51c365db`** (upstream PRs #293/#294, which the four unmerged commits now sit on) |
 | **Commits** | 104 |
 | **Functions decompiled** | **1005** |
-| **Verified** | `build/pmdsky.us/pmdsky.us.nds: OK` at every commit. **EU and JP** were verified at the `a6ce70e5` tip, and for all three ROMs at `53d6c360` and again at `0053099d` |
+| **Verified** | `build/pmdsky.us/pmdsky.us.nds: OK` at every commit. **EU and JP** were verified at the `a6ce70e5` tip, and for all three ROMs at `ef68e88d` and again at `7b76a1b2` |
 | **Notes written** | **retroactively**, after commit 50 |
 
 > **Unverified AI-authored reasoning.** Not part of the decompilation, never
@@ -145,10 +145,10 @@ both reviewing it incrementally and splitting it later feasible.
 | `be41c2f3` | Decomp 20 functions, emptying six asm fragments | 20 | [notes](../commits/be41c2f3.md) |
 | `d9df74f0` | Decomp 17 functions, emptying eight asm files | 17 | [notes](../commits/d9df74f0.md) |
 | `6425efdd` | Decomp 16 functions, emptying nine asm files | 16 | [notes](../commits/6425efdd.md) |
-| `ef8633f9` | Decomp ov11_022ED69C; correct BmaHeader field signedness | 1 | [notes](../commits/ef8633f9.md) |
-| `ff65ac0e` | Decomp ApplyDamage; fix a message-id parameter type and three field types | 1 | [notes](../commits/ff65ac0e.md) |
-| `53d6c360` | ApplyDamage: match the EU and JP builds | 0 | [notes](../commits/53d6c360.md) |
-| `0053099d` | Decomp ApplyDamageAndEffects; ApplyDamage's damage source is signed 16-bit | 1 | [notes](../commits/0053099d.md) |
+| `058707bc` | Decomp ov11_022ED69C; correct BmaHeader field signedness | 1 | [notes](../commits/058707bc.md) |
+| `5271b77a` | Decomp ApplyDamage; fix a message-id parameter type and three field types | 1 | [notes](../commits/5271b77a.md) |
+| `ef68e88d` | ApplyDamage: match the EU and JP builds | 0 | [notes](../commits/ef68e88d.md) |
+| `7b76a1b2` | Decomp ApplyDamageAndEffects; ApplyDamage's damage source is signed 16-bit | 1 | [notes](../commits/7b76a1b2.md) |
 
 ## Cross-cutting changes a reviewer should weigh
 
@@ -255,7 +255,7 @@ other writes a word, and one writes a byte inside the other's word at `0x1B0`.
 They are kept as separate views because a merged struct would have to assert an
 agreement the stores disprove.
 
-### Three field types corrected, and a message-id parameter (`ff65ac0e`)
+### Three field types corrected, and a message-id parameter (`5271b77a`)
 
 `ApplyDamage` required `struct monster::bide_damage_tally` `u32` -> `s32`
 (clamped with `strgt`), `struct monster::field_0x168`/`field_0x169` merged into
@@ -273,7 +273,7 @@ forwarders whose parameter types their own bodies never constrained. This is the
 same failure mode as `SetActionUseMovePlayer` above: **a parameter that a
 forwarder only passes through cannot be typed from the forwarder.**
 
-### A deliberate declaration divergence: `DUNGEON_PTR` (`ff65ac0e`)
+### A deliberate declaration divergence: `DUNGEON_PTR` (`5271b77a`)
 
 `src/overlay_29_02308FBC.c` declares `extern struct dungeon *DUNGEON_PTR;`
 where `src/dg_camera.c`, `src/dg_uty.c` and `src/dungeon_ai.c` declare
@@ -301,7 +301,7 @@ these.** Known outstanding:
 | `UpdateWindow`, `sub_02027B1C` | `overlay_25_init.c` declares both as `char *` | **genuinely wrong** — the value is a window id ([`7f6977e2`](../commits/7f6977e2.md)) |
 | `UpdateWindow`, `sub_02027B1C` | `overlay_13_0238BDA8.c` declares both as `s8` | harmless; left to preserve an upstream annotation |
 | `sub_0202836C` | **five** declarations that disagree: `int`, `s32`, `s8`, `s8`, and `s32` added by [`702c4c85`](../commits/702c4c85.md) | kept out of `window.h` so no overlay sees a conflict |
-| `DUNGEON_PTR` (data) | `overlay_29_02308FBC.c` declares it scalar; `dg_camera.c`, `dg_uty.c`, `dungeon_ai.c` declare `*DUNGEON_PTR[]` | **deliberate** — the array form lets MWCC CSE the load and costs three instructions ([`ff65ac0e`](../commits/ff65ac0e.md)) |
+| `DUNGEON_PTR` (data) | `overlay_29_02308FBC.c` declares it scalar; `dg_camera.c`, `dg_uty.c`, `dungeon_ai.c` declare `*DUNGEON_PTR[]` | **deliberate** — the array form lets MWCC CSE the load and costs three instructions ([`5271b77a`](../commits/5271b77a.md)) |
 
 The `overlay_25_init.c` case is the only *incorrect* one. Fixing it properly
 means retyping `ov25_0238B414`'s own parameter and its callers, which is its own
@@ -313,7 +313,7 @@ piece of work.
 
 ### A construct that is a stand-in, not recovered source
 
-[`ff65ac0e`](../commits/ff65ac0e.md) matches `ApplyDamage` with one `volatile`
+[`5271b77a`](../commits/5271b77a.md) matches `ApplyDamage` with one `volatile`
 read:
 
 ```c
