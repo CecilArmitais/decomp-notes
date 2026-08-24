@@ -1,13 +1,13 @@
-# `decomp-continued` — 1005 functions across 104 commits
+# `decomp-continued` — 1006 functions across 105 commits
 
 | | |
 |---|---|
 | **Branch** | `decomp-continued` |
-| **PR** | **#290 merged** (through `5ffad87a`), then **#291 merged** (through `6425efdd`, as `440d7b7d`). **Four commits are unmerged**: `058707bc`, `5271b77a`, `ef68e88d` and `7b76a1b2` sit on top of `51c365db` and are not yet in a PR. |
-| **Base** | originally `upstream/main` @ `86ec9772`; after #290 the merge-base was `5ffad87a`; after #291 it was `440d7b7d`. **Rebased 2026-08-24 onto `51c365db`** (upstream PRs #293/#294, which the four unmerged commits now sit on) |
-| **Commits** | 104 |
-| **Functions decompiled** | **1005** |
-| **Verified** | `build/pmdsky.us/pmdsky.us.nds: OK` at every commit. **EU and JP** were verified at the `a6ce70e5` tip, and for all three ROMs at `ef68e88d` and again at `7b76a1b2` |
+| **PR** | **#290 merged** (through `5ffad87a`), then **#291 merged** (through `6425efdd`, as `440d7b7d`). **Five commits are unmerged**: `058707bc`, `5271b77a`, `ef68e88d`, `7b76a1b2` and `3fc6d8bd` sit on top of `51c365db` and are not yet in a PR. |
+| **Base** | originally `upstream/main` @ `86ec9772`; after #290 the merge-base was `5ffad87a`; after #291 it was `440d7b7d`. **Rebased 2026-08-24 onto `51c365db`** (upstream PRs #293/#294, which the five unmerged commits now sit on) |
+| **Commits** | 105 |
+| **Functions decompiled** | **1006** |
+| **Verified** | `build/pmdsky.us/pmdsky.us.nds: OK` at every commit. **EU and JP** were verified at the `a6ce70e5` tip, and for all three ROMs at `ef68e88d`, `7b76a1b2` and `3fc6d8bd` |
 | **Notes written** | **retroactively**, after commit 50 |
 
 > **Unverified AI-authored reasoning.** Not part of the decompilation, never
@@ -149,8 +149,24 @@ both reviewing it incrementally and splitting it later feasible.
 | `5271b77a` | Decomp ApplyDamage; fix a message-id parameter type and three field types | 1 | [notes](../commits/5271b77a.md) |
 | `ef68e88d` | ApplyDamage: match the EU and JP builds | 0 | [notes](../commits/ef68e88d.md) |
 | `7b76a1b2` | Decomp ApplyDamageAndEffects; ApplyDamage's damage source is signed 16-bit | 1 | [notes](../commits/7b76a1b2.md) |
+| `3fc6d8bd` | Decomp CalcTypeBasedDamageEffects; pad damage_calc_diag to its real layout | 1 | [notes](../commits/3fc6d8bd.md) |
 
 ## Cross-cutting changes a reviewer should weigh
+
+### `struct damage_calc_diag` gained three padding bytes ([`3fc6d8bd`](../commits/3fc6d8bd.md))
+
+The header modelled `move_type` as a 1-byte enum plus explicit
+`field_0x1/0x2/0x3`, but gave `move_category` no padding, so under `-enum min`
+every member from `move_indiv_type_matchups` (0x8) to `attacker_level` (0x16)
+compiled below the offset its own comment states. Alignment before `damage_calc`
+re-absorbed the drift, so the struct still totalled 0x54 and no build caught it.
+`asm/overlay_29_022E0378.s` and `asm/overlay_29_022E335C.s` access both fields
+with **word** instructions, so both are four bytes in retail.
+
+Only two places in the tree use `last_damage_calc`, both past the
+re-convergence point, so the change is byte-neutral — confirmed by a matching
+build of all three regions. A reviewer may prefer to model both enums as
+four-byte members and drop all six placeholders instead; that is byte-identical.
 
 These are the changes that touch types shared with the rest of the tree. They are
 the ones most likely to be contentious, and they are collected here so nobody has
