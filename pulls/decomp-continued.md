@@ -1,13 +1,13 @@
-# `decomp-continued` — 1006 functions across 105 commits
+# `decomp-continued` — 1013 functions across 109 commits
 
 | | |
 |---|---|
 | **Branch** | `decomp-continued` |
-| **PR** | **#290 merged** (through `5ffad87a`), then **#291 merged** (through `6425efdd`, as `440d7b7d`). **Seven commits are unmerged**: `058707bc`, `5271b77a`, `ef68e88d`, `7b76a1b2`, `3fc6d8bd`, `24d1e500` and `a5f856ee` sit on top of `51c365db` and are not yet in a PR. |
+| **PR** | **#290 merged** (through `5ffad87a`), then **#291 merged** (through `6425efdd`, as `440d7b7d`). **Nine commits are unmerged**: `058707bc`, `5271b77a`, `ef68e88d`, `7b76a1b2`, `3fc6d8bd`, `24d1e500`, `a5f856ee`, `f47ce293` and `a562678d` sit on top of `51c365db` and are not yet in a PR. |
 | **Base** | originally `upstream/main` @ `86ec9772`; after #290 the merge-base was `5ffad87a`; after #291 it was `440d7b7d`. **Rebased 2026-08-24 onto `51c365db`** (upstream PRs #293/#294, which the seven unmerged commits now sit on) |
-| **Commits** | 107 |
-| **Functions decompiled** | **1007** |
-| **Verified** | `build/pmdsky.us/pmdsky.us.nds: OK` at every commit. **EU and JP** were verified at the `a6ce70e5` tip, and for all three ROMs at `ef68e88d`, `7b76a1b2`, `3fc6d8bd`, `24d1e500` and `a5f856ee` |
+| **Commits** | 109 |
+| **Functions decompiled** | **1013** |
+| **Verified** | `build/pmdsky.us/pmdsky.us.nds: OK` at every commit. **EU and JP** were verified at the `a6ce70e5` tip, and for all three ROMs at `ef68e88d`, `7b76a1b2`, `3fc6d8bd`, `24d1e500`, `a5f856ee` and `a562678d`. `f47ce293` is US-only, which is sufficient: its five blocks carry no region directive and nothing they touch is region-varying |
 | **Notes written** | **retroactively**, after commit 50 |
 
 > **Unverified AI-authored reasoning.** Not part of the decompilation, never
@@ -152,6 +152,8 @@ both reviewing it incrementally and splitting it later feasible.
 | `3fc6d8bd` | Decomp CalcTypeBasedDamageEffects; pad damage_calc_diag to its real layout | 1 | [notes](../commits/3fc6d8bd.md) |
 | `24d1e500` | Decomp CalcDamage; damage_calc_diag's move_category is 4 bytes, its modifiers unsigned | 1 | [notes](../commits/24d1e500.md) |
 | `a5f856ee` | Use generic local names in the five functions landed since 51c365db | -- | [notes](../commits/a5f856ee.md) |
+| `f47ce293` | Decomp the fixed-point helper cluster at the end of main_020504BC.s | 5 | [notes](../commits/f47ce293.md) |
+| `a562678d` | Decomp ActivateEndOfTurnEffects; monster::bide_move_id is a 2-byte enum move_id | 1 | [notes](../commits/a562678d.md) |
 
 ## Cross-cutting changes a reviewer should weigh
 
@@ -187,6 +189,33 @@ the upstream declarations and are worth raising there.
 These are the changes that touch types shared with the rest of the tree. They are
 the ones most likely to be contentious, and they are collected here so nobody has
 to find them across 50 commits.
+
+### `struct monster`: `bide_move_id` widened to a 2-byte `enum move_id` ([`a562678d`](../commits/a562678d.md))
+
+The third deviation from pmdsky-debug's declarations on this branch, and the
+same shape as the two `damage_calc_diag` ones above: upstream's byte is not the
+width retail uses.
+
+`0xAC` was `u8 bide_move_id;` followed by `u8 field_0xad;`. Retail accesses it
+with `ldrh`/`strh` and stores **0x165 = 357 = `MOVE_BIDE_UNLEASH`**, which does
+not fit in a byte. It is now `enum move_id bide_move_id;`, absorbing
+`field_0xad`.
+
+Why the enum rather than `u16`: `enum move_id` runs to `MOVE_TAG_0x22E = 558`,
+so `-enum min` cannot size it below 16 bits, and the tree already depends on
+that — `struct move` has `enum move_id id; // 0x2` sandwiched between two `u8`s
+(`include/common.h:20-31`). It also means `InitMove`, which takes
+`enum move_id`, is fed with no cast; a `u16` field would have needed one under
+`-W error`.
+
+The change is layout-neutral by measurement, not by argument: eight
+compile-time assertions (including `unique_id` still at 0xB0 and
+`sizeof(struct monster) == 0x240`) plus a full matching build with the change
+alone, before any of the function that motivated it was written. No other source
+in the tree reads `bide_move_id` or `field_0xad`.
+
+**Worth raising upstream.** The field is conceptually a move id and pmdsky-debug
+sizes it as a byte; codegen requires 16 bits.
 
 ### A parameter type only a caller can see: `SetActionUseMovePlayer`
 
