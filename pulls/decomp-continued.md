@@ -3,11 +3,11 @@
 | | |
 |---|---|
 | **Branch** | `decomp-continued` |
-| **PR** | **#290 merged** (through `5ffad87a`), then **#291 merged** (through `6425efdd`, as `440d7b7d`). **Six commits are unmerged**: `058707bc`, `5271b77a`, `ef68e88d`, `7b76a1b2`, `3fc6d8bd` and `24d1e500` sit on top of `51c365db` and are not yet in a PR. |
-| **Base** | originally `upstream/main` @ `86ec9772`; after #290 the merge-base was `5ffad87a`; after #291 it was `440d7b7d`. **Rebased 2026-08-24 onto `51c365db`** (upstream PRs #293/#294, which the six unmerged commits now sit on) |
-| **Commits** | 106 |
+| **PR** | **#290 merged** (through `5ffad87a`), then **#291 merged** (through `6425efdd`, as `440d7b7d`). **Seven commits are unmerged**: `058707bc`, `5271b77a`, `ef68e88d`, `7b76a1b2`, `3fc6d8bd`, `24d1e500` and `a5f856ee` sit on top of `51c365db` and are not yet in a PR. |
+| **Base** | originally `upstream/main` @ `86ec9772`; after #290 the merge-base was `5ffad87a`; after #291 it was `440d7b7d`. **Rebased 2026-08-24 onto `51c365db`** (upstream PRs #293/#294, which the seven unmerged commits now sit on) |
+| **Commits** | 107 |
 | **Functions decompiled** | **1007** |
-| **Verified** | `build/pmdsky.us/pmdsky.us.nds: OK` at every commit. **EU and JP** were verified at the `a6ce70e5` tip, and for all three ROMs at `ef68e88d`, `7b76a1b2`, `3fc6d8bd` and `24d1e500` |
+| **Verified** | `build/pmdsky.us/pmdsky.us.nds: OK` at every commit. **EU and JP** were verified at the `a6ce70e5` tip, and for all three ROMs at `ef68e88d`, `7b76a1b2`, `3fc6d8bd`, `24d1e500` and `a5f856ee` |
 | **Notes written** | **retroactively**, after commit 50 |
 
 > **Unverified AI-authored reasoning.** Not part of the decompilation, never
@@ -151,6 +151,7 @@ both reviewing it incrementally and splitting it later feasible.
 | `7b76a1b2` | Decomp ApplyDamageAndEffects; ApplyDamage's damage source is signed 16-bit | 1 | [notes](../commits/7b76a1b2.md) |
 | `3fc6d8bd` | Decomp CalcTypeBasedDamageEffects; pad damage_calc_diag to its real layout | 1 | [notes](../commits/3fc6d8bd.md) |
 | `24d1e500` | Decomp CalcDamage; damage_calc_diag's move_category is 4 bytes, its modifiers unsigned | 1 | [notes](../commits/24d1e500.md) |
+| `a5f856ee` | Use generic local names in the five functions landed since 51c365db | -- | [notes](../commits/a5f856ee.md) |
 
 ## Cross-cutting changes a reviewer should weigh
 
