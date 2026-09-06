@@ -3,11 +3,11 @@
 | | |
 |---|---|
 | **Branch** | `decomp-continued` |
-| **PR** | **#290 merged** (through `5ffad87a`), then **#291 merged** (through `6425efdd`, as `440d7b7d`). **Five commits are unmerged**: `058707bc`, `5271b77a`, `ef68e88d`, `7b76a1b2` and `3fc6d8bd` sit on top of `51c365db` and are not yet in a PR. |
-| **Base** | originally `upstream/main` @ `86ec9772`; after #290 the merge-base was `5ffad87a`; after #291 it was `440d7b7d`. **Rebased 2026-08-24 onto `51c365db`** (upstream PRs #293/#294, which the five unmerged commits now sit on) |
-| **Commits** | 105 |
-| **Functions decompiled** | **1006** |
-| **Verified** | `build/pmdsky.us/pmdsky.us.nds: OK` at every commit. **EU and JP** were verified at the `a6ce70e5` tip, and for all three ROMs at `ef68e88d`, `7b76a1b2` and `3fc6d8bd` |
+| **PR** | **#290 merged** (through `5ffad87a`), then **#291 merged** (through `6425efdd`, as `440d7b7d`). **Six commits are unmerged**: `058707bc`, `5271b77a`, `ef68e88d`, `7b76a1b2`, `3fc6d8bd` and `24d1e500` sit on top of `51c365db` and are not yet in a PR. |
+| **Base** | originally `upstream/main` @ `86ec9772`; after #290 the merge-base was `5ffad87a`; after #291 it was `440d7b7d`. **Rebased 2026-08-24 onto `51c365db`** (upstream PRs #293/#294, which the six unmerged commits now sit on) |
+| **Commits** | 106 |
+| **Functions decompiled** | **1007** |
+| **Verified** | `build/pmdsky.us/pmdsky.us.nds: OK` at every commit. **EU and JP** were verified at the `a6ce70e5` tip, and for all three ROMs at `ef68e88d`, `7b76a1b2`, `3fc6d8bd` and `24d1e500` |
 | **Notes written** | **retroactively**, after commit 50 |
 
 > **Unverified AI-authored reasoning.** Not part of the decompilation, never
@@ -150,6 +150,7 @@ both reviewing it incrementally and splitting it later feasible.
 | `ef68e88d` | ApplyDamage: match the EU and JP builds | 0 | [notes](../commits/ef68e88d.md) |
 | `7b76a1b2` | Decomp ApplyDamageAndEffects; ApplyDamage's damage source is signed 16-bit | 1 | [notes](../commits/7b76a1b2.md) |
 | `3fc6d8bd` | Decomp CalcTypeBasedDamageEffects; pad damage_calc_diag to its real layout | 1 | [notes](../commits/3fc6d8bd.md) |
+| `24d1e500` | Decomp CalcDamage; damage_calc_diag's move_category is 4 bytes, its modifiers unsigned | 1 | [notes](../commits/24d1e500.md) |
 
 ## Cross-cutting changes a reviewer should weigh
 
@@ -167,6 +168,20 @@ Only two places in the tree use `last_damage_calc`, both past the
 re-convergence point, so the change is byte-neutral — confirmed by a matching
 build of all three regions. A reviewer may prefer to model both enums as
 four-byte members and drop all six placeholders instead; that is byte-identical.
+**Superseded for `move_category` by `24d1e500`, next.**
+
+### `struct damage_calc_diag`: `move_category` widened to `s32`, the eight modifiers made `u8` ([`24d1e500`](../commits/24d1e500.md))
+
+`CalcDamage` writes `move_category` with a 4-byte `str` (`0x0230BDC8`), which a
+1-byte enum plus padding cannot produce (`strb`), so the field is now
+`s32 move_category;` and the three placeholder bytes from `3fc6d8bd` are gone —
+the struct stays 0x54 bytes and the word-access evidence in the previous
+section agrees. It also reads the eight modifier counts at 0x30-0x37 with
+unsigned `ldrb` at all 24 sites, so they are `u8` where pmdsky-debug declares
+`s8` (they are conceptually signed counts of −2..+2, which is presumably why).
+No other source in the tree reads any of these members (grep), and the change
+is confirmed by matching builds of all three regions. Both are deviations from
+the upstream declarations and are worth raising there.
 
 These are the changes that touch types shared with the rest of the tree. They are
 the ones most likely to be contentious, and they are collected here so nobody has
@@ -348,6 +363,16 @@ The closest natural form, a `struct curse_class_status *` local, reaches
 1623/1624 rows and differs in exactly one instruction. If a better construct
 turns up it should replace this line verbatim.
 
+[`24d1e500`](../commits/24d1e500.md) matches `CalcDamage`'s ability-multiply
+block with an `s32 calc[2]` local, two temps and three `volatile s32 *`
+pointers to it. Every element removes one measured compiler obstacle (the
+note lists them: address-expression propagation, the scheduler's store
+ordering, the allocator's simplify order); it is ordinary C and compiles to
+the bytes, but it is **match-derived, not recovered source**. The function
+was byte-identical outside those eleven instructions from early on; a plainer
+spelling that satisfies the same conditions would be welcome and should
+replace it verbatim.
+
 ### Signatures the bytes do not determine
 
 Several functions have signatures that **no scratch can validate**, because the
@@ -467,3 +492,15 @@ matching build could report:
 - **Two species ids in `IsMonsterAffectedByGravelyrockGroundMode` are left raw**
   ([`152f6c7e`](../commits/152f6c7e.md)) and are almost certainly named
   enumerators.
+- **`struct damage_calc_diag` now disagrees with pmdsky-debug twice**
+  ([`24d1e500`](../commits/24d1e500.md)): `s32 move_category` where upstream
+  has a 1-byte enum, and `u8` modifier counts where upstream has `s8`. The
+  bytes force both; the question is whether to change upstream's declarations
+  or carry the deviation.
+- **The JP build of `CalcDamage` compares the attacker's `apparent_id`** where
+  US/EU compare the defender's, at the defense-side `0x211`/`0x218` checks.
+  The bytes force the `#ifdef JAPAN`; whether it is a known regional bug is
+  not recorded anywhere we found.
+- **`CalcDamage`'s ability-multiply block is match-derived C** (see *A
+  construct that is a stand-in*); the parameter names for its arguments 7-9
+  are inferred, `a9` is a placeholder.
