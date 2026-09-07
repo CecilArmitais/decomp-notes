@@ -1,0 +1,133 @@
+# `0cafbd14` — Decomp `sub_0203D538`; replace its stale extern with the new header
+
+| | |
+|---|---|
+| **Commit** | `0cafbd14` (as of writing — renamed if amended or rebased) |
+| **Branch** | `decomp-continued`, on top of [`a98b22af`](a98b22af.md) |
+| **Verified** | all three ROMs: `pmdsky.us.nds: OK`, `pmdsky.eu.nds: OK`, `pmdsky.jp.nds: OK` |
+
+> **Unverified AI-authored reasoning.** Not part of the decompilation, never
+> merged, not authoritative. The PR diff and the matching build are the sources
+> of truth — see [the README](../README.md). Claims are labelled **fact** (read
+> off the asm/data, or from an existing in-tree header) or **inference**.
+
+---
+
+`sub_0203D538` (`0x0203D538`, **1666 instructions** in US and EU, **1640** in JP)
+is the mission-reward state machine: a 77-case dense switch over
+`MISSION_REWARD_STRUCT_MAIN_PTR->field_0x0`, driving money, egg, item, rank-up
+and recruit rewards through dialogue boxes and menus.
+
+## Landing shape — a split
+
+**Fact.** Function 13 of 89 in `asm/main_0203CAF0.s`, so both merge branches of
+`extract_function.py` are gated off and it **splits**: the 76 functions after it
+move to `asm/main_0203EFD4.s`, the function lands in `src/main_0203D538.c` with
+a new `include/main_0203D538.h`, and `main.lsf` lists two objects where it listed
+one. Predicted by reading the tool before running it; the run matched.
+
+## The stale declaration
+
+**Fact.** `src/overlay_24_init.c` declared `extern s32 sub_0203D538();` and calls
+it inside a `switch`. That extern is gone and the file includes the new header.
+An empty parameter list means *unspecified*, not *none*, so it neither confirmed
+nor refuted the arity — the bytes did.
+
+## Signature
+
+```c
+s32 sub_0203D538(void);
+```
+
+**Arity 0 is fact, three independent ways** (census): a CFG dataflow with all 77
+jump-table edges modelled — 0 unreachable blocks, 0 reads of an incoming r0-r3;
+the stack gap (highest `sp` offset touched is 0xf0 against a 0x138 argument
+base); and all ten call sites passing nothing.
+
+Returns exactly `{0, 1}`, **1 only from case 76** — so the caller's `case -1:` is
+dead code. It must not be "fixed".
+
+## Three structural facts that drove the match
+
+**Case order is source order and is not ascending** (fact, read off the jump
+table): `0..29, 32, 33, 34, 30, 31, 35..44, 52..57, 45..51, 58..76`. Two
+contiguous runs are swapped. Writing them numerically does not match.
+
+**Every case `break`s to a single trailing `return 0;`.** The target's exit block
+itself materialises the value (`_0203EF9C: mov r0,#0` falling into the
+epilogue), so `return 0` there is a bare branch. A `return 0;` per case makes
+MWCC materialise `r0` at each of 77 sites *and* de-predicates the short blocks
+above them — 130 instructions of excess. `case 76: return 1;` is the sole
+exception, and the target jumping past that `mov r0,#0` is how you identify it.
+
+**The nine function-scope locals are declared buffer-first, then the five
+`struct item` in reverse case order.** MWCC gives the first-declared local the
+highest stack address, and the target wants the buffer at `sp+0x22`. This costs
+**zero instructions**, so it never appears as a length difference — it shows only
+as a wrong offset at every stack access, which is easy to misread as already
+matching.
+
+## The placeholder struct, and what it does not claim
+
+`struct unk_020AFE74` is a placeholder for the 0x3C0-byte, 8-aligned state struct
+(`MemAlloc(0x3c0, 8)` in the initialiser — fact). It uses `field_0x<off>` members
+with the widths the asm actually uses, four established types where the census
+proves them, and `u8` filler for two ranges.
+
+**Those filler ranges — 0x1BF-0x2B4 and 0x303-0x3B7, 427 bytes — are never
+touched by this function.** A scan of every `[reg, #imm]` offset in the whole
+target confirms it. The struct therefore **cannot be honestly typed from this
+caller alone**; the other 88 functions in the object exercise the rest.
+
+`MISSION_REWARD_STRUCT_MAIN_PTR` is **not** `const` despite living in a
+`*_rodata_*` file — precedent two symbols earlier in the same object
+(`src/main_0203C910.c:15`) — and it is re-dereferenced at every statement rather
+than cached, which is what the 135 pool loads require.
+
+## Provisional declarations
+
+19 callees have no declaration anywhere and are declared `extern` in the `.c`
+with prototypes read off their own asm. Arities are call-site facts; **argument
+types are inference** and should be narrowed as each callee lands.
+
+Two contradict `src/main_020663C8.c:3,5`: **`sub_02046C78` and `sub_02046D20`
+take no arguments** (fact — no argument register is set at any of their six call
+sites here). The build cannot catch a disagreement between two translation
+units, so this is the kind of thing only a grep finds.
+
+## Regions
+
+| kind | cost | evidence |
+|---|---|---|
+| 35 message ids (25 macro'd + 10 explicit pairs), uniform **+0x21D4** | one file-scope offset macro, written at 36 sites | fact, computed per id |
+| one id at **0x2CC → 0x2FEC**, a **+0x2D20** shift | its own `#ifdef JAPAN` | fact; 0x2D20 is an established JP shift elsewhere in the tree for ids ≥ 0x2B1 |
+| `StrncpySimple(dst, src, 10)` → `StrcpySimple(dst, src)` | an `#ifdef` | fact — the third argument exists only internationally |
+| case 74's item fetch, name formatting **and its early-exit guard** | `#ifndef JAPAN` | fact; this is what removes a `struct item` local and takes the frame 0x11C → 0x114 |
+
+**EUROPE is byte-identical to NORTH_AMERICA** — there is no `EUROPE` directive
+anywhere in this function (fact, grep), and an address walk confirms both at 1666
+instructions.
+
+The shape follows `src/overlay_25_init.c`'s `ov25_0238A694`, a landed matching
+switch-state function over a global pointer with the same local types.
+
+## Two corrections to the census, made during the work
+
+- Its JP pool-word count of **45 is wrong; there are 43** — six JP-only `.word`
+  lines, not eight. Counted two independent ways (an address walk and a direct
+  scan of every `.word` inside a `JAPAN` conditional).
+- It identified case 74's item fetch and name formatting as JAPAN's omissions but
+  **not the `v10 == 1` early-exit guard** that protects them. That guard was the
+  final two instructions of the JP residue.
+
+## Open questions for a reviewer
+
+- The 19 provisional prototypes' argument types are inference.
+- `struct unk_020AFE74`'s two filler ranges are honest placeholders, not claims;
+  the struct wants a second caller before it is typed properly.
+- Whether the +0x21D4 and +0x2D20 shifts really are **message-string** ids is
+  **unestablished** — nothing in the tree names that id space. It does not affect
+  the match, only naming. Settled by dumping the US and JP tables and checking
+  that US 0x286 and JP 0x245A are the same line.
+- The function keeps its `sub_<addr>` name: this was decompilation, not
+  identification.

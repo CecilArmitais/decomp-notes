@@ -1,13 +1,13 @@
-# `decomp-continued` — 1014 functions across 110 commits
+# `decomp-continued` — 1015 functions across 111 commits
 
 | | |
 |---|---|
 | **Branch** | `decomp-continued` |
-| **PR** | **#290 merged** (through `5ffad87a`), then **#291 merged** (through `6425efdd`, as `440d7b7d`). **Ten commits are unmerged**: `058707bc`, `5271b77a`, `ef68e88d`, `7b76a1b2`, `3fc6d8bd`, `24d1e500`, `a5f856ee`, `f47ce293`, `a562678d` and `a98b22af` sit on top of `51c365db` and are not yet in a PR. |
+| **PR** | **#290 merged** (through `5ffad87a`), then **#291 merged** (through `6425efdd`, as `440d7b7d`). **Eleven commits are unmerged**: `058707bc`, `5271b77a`, `ef68e88d`, `7b76a1b2`, `3fc6d8bd`, `24d1e500`, `a5f856ee`, `f47ce293`, `a562678d`, `a98b22af` and `0cafbd14` sit on top of `51c365db` and are not yet in a PR. |
 | **Base** | originally `upstream/main` @ `86ec9772`; after #290 the merge-base was `5ffad87a`; after #291 it was `440d7b7d`. **Rebased 2026-08-24 onto `51c365db`** (upstream PRs #293/#294, which the seven unmerged commits now sit on) |
-| **Commits** | 110 |
-| **Functions decompiled** | **1014** |
-| **Verified** | `build/pmdsky.us/pmdsky.us.nds: OK` at every commit. **EU and JP** were verified at the `a6ce70e5` tip, and for all three ROMs at `ef68e88d`, `7b76a1b2`, `3fc6d8bd`, `24d1e500`, `a5f856ee`, `a562678d` and `a98b22af`. `f47ce293` is US-only, which is sufficient: its five blocks carry no region directive and nothing they touch is region-varying |
+| **Commits** | 111 |
+| **Functions decompiled** | **1015** |
+| **Verified** | `build/pmdsky.us/pmdsky.us.nds: OK` at every commit. **EU and JP** were verified at the `a6ce70e5` tip, and for all three ROMs at `ef68e88d`, `7b76a1b2`, `3fc6d8bd`, `24d1e500`, `a5f856ee`, `a562678d`, `a98b22af` and `0cafbd14`. `f47ce293` is US-only, which is sufficient: its five blocks carry no region directive and nothing they touch is region-varying |
 | **Notes written** | **retroactively**, after commit 50 |
 
 > **Unverified AI-authored reasoning.** Not part of the decompilation, never
@@ -155,6 +155,7 @@ both reviewing it incrementally and splitting it later feasible.
 | `f47ce293` | Decomp the fixed-point helper cluster at the end of main_020504BC.s | 5 | [notes](../commits/f47ce293.md) |
 | `a562678d` | Decomp ActivateEndOfTurnEffects; monster::bide_move_id is a 2-byte enum move_id | 1 | [notes](../commits/a562678d.md) |
 | `a98b22af` | Decomp ApplyItemEffect; replace its stale extern with the new header | 1 | [notes](../commits/a98b22af.md) |
+| `0cafbd14` | Decomp sub_0203D538; replace its stale extern with the new header | 1 | [notes](../commits/0cafbd14.md) |
 
 ## Cross-cutting changes a reviewer should weigh
 
@@ -239,6 +240,29 @@ default entries, which padding cannot explain. The table therefore spans the
 minimum to maximum *labelled* case, and leading/trailing default entries are
 explicit `case` labels sharing `default`'s body. That is a fact about MWCC, not
 about this function, and it will matter for the next switch-heavy target.
+
+### The first file split on this branch, and a struct that cannot yet be typed ([`0cafbd14`](../commits/0cafbd14.md))
+
+Two things a reviewer should weigh beyond the diff.
+
+**This is the branch's first `extract_function.py` SPLIT** rather than a merge —
+the function sits mid-file, so 76 following functions move to a new
+`asm/main_0203EFD4.s`, a fresh `src`/`include` pair is created, and `main.lsf`
+gains two objects where it had one. Worth a look purely because the mechanics
+differ from every other landing here.
+
+**`struct unk_020AFE74` is a placeholder that deliberately does not claim
+everything.** It models the 0x3C0-byte mission-reward state struct, but 427 of
+those bytes — 0x1BF-0x2B4 and 0x303-0x3B7 — are **never touched by this
+function**, confirmed by scanning every `[reg, #imm]` offset in the target. They
+are `u8` filler, not inferred members. The other 88 functions in the object
+exercise the rest, and the struct wants a second caller before it is typed
+properly. Flagged because a filler range is exactly the sort of thing a later
+contributor might "helpfully" name from one call site.
+
+Also here, and cheap to check: `sub_02046C78` and `sub_02046D20` take **no**
+arguments, contradicting `src/main_020663C8.c:3,5`. Two translation units never
+meet, so the build cannot catch that — only a grep can.
 
 ### A parameter type only a caller can see: `SetActionUseMovePlayer`
 
