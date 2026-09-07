@@ -1,13 +1,13 @@
-# `decomp-continued` — 1015 functions across 111 commits
+# `decomp-continued` — 1016 functions across 112 commits
 
 | | |
 |---|---|
 | **Branch** | `decomp-continued` |
-| **PR** | **#290 merged** (through `5ffad87a`), then **#291 merged** (through `6425efdd`, as `440d7b7d`). **Eleven commits are unmerged**: `058707bc`, `5271b77a`, `ef68e88d`, `7b76a1b2`, `3fc6d8bd`, `24d1e500`, `a5f856ee`, `f47ce293`, `a562678d`, `a98b22af` and `0cafbd14` sit on top of `51c365db` and are not yet in a PR. |
+| **PR** | **#290 merged** (through `5ffad87a`), then **#291 merged** (through `6425efdd`, as `440d7b7d`). **Twelve commits are unmerged**: `058707bc`, `5271b77a`, `ef68e88d`, `7b76a1b2`, `3fc6d8bd`, `24d1e500`, `a5f856ee`, `f47ce293`, `a562678d`, `a98b22af`, `0cafbd14` and `f8eaf87f` sit on top of `51c365db` and are not yet in a PR. |
 | **Base** | originally `upstream/main` @ `86ec9772`; after #290 the merge-base was `5ffad87a`; after #291 it was `440d7b7d`. **Rebased 2026-08-24 onto `51c365db`** (upstream PRs #293/#294, which the seven unmerged commits now sit on) |
-| **Commits** | 111 |
-| **Functions decompiled** | **1015** |
-| **Verified** | `build/pmdsky.us/pmdsky.us.nds: OK` at every commit. **EU and JP** were verified at the `a6ce70e5` tip, and for all three ROMs at `ef68e88d`, `7b76a1b2`, `3fc6d8bd`, `24d1e500`, `a5f856ee`, `a562678d`, `a98b22af` and `0cafbd14`. `f47ce293` is US-only, which is sufficient: its five blocks carry no region directive and nothing they touch is region-varying |
+| **Commits** | 112 |
+| **Functions decompiled** | **1016** |
+| **Verified** | `build/pmdsky.us/pmdsky.us.nds: OK` at every commit. **EU and JP** were verified at the `a6ce70e5` tip, and for all three ROMs at `ef68e88d`, `7b76a1b2`, `3fc6d8bd`, `24d1e500`, `a5f856ee`, `a562678d`, `a98b22af`, `0cafbd14` and `f8eaf87f`. `f47ce293` is US-only, which is sufficient: its five blocks carry no region directive and nothing they touch is region-varying |
 | **Notes written** | **retroactively**, after commit 50 |
 
 > **Unverified AI-authored reasoning.** Not part of the decompilation, never
@@ -156,6 +156,7 @@ both reviewing it incrementally and splitting it later feasible.
 | `a562678d` | Decomp ActivateEndOfTurnEffects; monster::bide_move_id is a 2-byte enum move_id | 1 | [notes](../commits/a562678d.md) |
 | `a98b22af` | Decomp ApplyItemEffect; replace its stale extern with the new header | 1 | [notes](../commits/a98b22af.md) |
 | `0cafbd14` | Decomp sub_0203D538; replace its stale extern with the new header | 1 | [notes](../commits/0cafbd14.md) |
+| `f8eaf87f` | Decomp ov11_02307334; correct three callee declarations it exposes | 1 | [notes](../commits/f8eaf87f.md) |
 
 ## Cross-cutting changes a reviewer should weigh
 
@@ -263,6 +264,50 @@ contributor might "helpfully" name from one call site.
 Also here, and cheap to check: `sub_02046C78` and `sub_02046D20` take **no**
 arguments, contradicting `src/main_020663C8.c:3,5`. Two translation units never
 meet, so the build cannot catch that — only a grep can.
+
+### Three callee declarations corrected, two of which cancelled each other ([`f8eaf87f`](../commits/f8eaf87f.md))
+
+`ov11_02307334` is the first caller that makes three long-standing declaration
+errors matter, and all three are `-W error` blockers for it rather than style
+points. Each is a **fact** read off the callee's own asm, and the matching build
+confirms all three are byte-neutral.
+
+| declaration | was | now |
+|---|---|---|
+| `RemoveItemNoHoleCheck` | `u32 (struct item *)` | `u32 (s16 index)` |
+| `GetFirstUnequippedItemOfType` | `struct item *(s16)` | `s16 (s16)` |
+| `ov10_022BCDA8` | `void (s32)` | `s32 (s32)` |
+
+The first two are **one** error, not two, and this is the part worth a
+reviewer's attention: `RemoveFirstUnequippedItemOfType` — the only other caller
+of either — passes the second's return straight into the first's parameter.
+Both were typed `struct item *` where the bytes say index, so the two mistakes
+cancelled and the pair matched by accident. `SMULBB` multiplying by 6
+(`sizeof(struct item)`) is what settles it.
+
+`ov10_022BCDA8`'s body ends in `sub_02033064`, which returns `s32`, so `r0` is
+live at return; this function consumes it twice.
+`src/overlay_10_022BCC60.c` gained the matching `return`.
+
+### The asm's region forks that the C does not need ([`f8eaf87f`](../commits/f8eaf87f.md))
+
+`asm/overlay_11_022FE5F8.s` carries four `#ifdef JAPAN` **code** forks inside
+this function, and the C reproduces all four with **no `#if` at all** — three
+file-scope offset macros and two genuine three-way `EUROPE` blocks cover the
+whole function, 11 preprocessor lines against the asm's 11 directive groups.
+
+The reason is mechanical: an id gets a code fork **iff exactly one** of its two
+values is an ARM rotated-8-bit immediate, so US/EU can use `mov` where JP needs
+a pool word. Writing `id + OFFSET` and letting MWCC choose reproduces both arms.
+This was predicted as inference before the JP build, with the two forks that
+also *reorder* three instructions named as the likeliest failures — they were
+not.
+
+Worth knowing for the next region pass: the `+0x2D20` family has 15 members but
+the asm writes its macro on only 11 pool words; the other four are hard-forked
+for encoding reasons and carry the same shift. Applying an offset macro to an
+id from a *different* family would produce a wrong JP ROM that **the US and EU
+builds still match**, so only a JP build can catch it.
 
 ### A parameter type only a caller can see: `SetActionUseMovePlayer`
 
@@ -410,8 +455,12 @@ these.** Known outstanding:
 | `UpdateWindow`, `sub_02027B1C` | `overlay_13_0238BDA8.c` declares both as `s8` | harmless; left to preserve an upstream annotation |
 | `sub_0202836C` | **five** declarations that disagree: `int`, `s32`, `s8`, `s8`, and `s32` added by [`702c4c85`](../commits/702c4c85.md) | kept out of `window.h` so no overlay sees a conflict |
 | `DUNGEON_PTR` (data) | `overlay_29_02308FBC.c` declares it scalar; `dg_camera.c`, `dg_uty.c`, `dungeon_ai.c` declare `*DUNGEON_PTR[]` | **deliberate** — the array form lets MWCC CSE the load and costs three instructions ([`5271b77a`](../commits/5271b77a.md)) |
+| `DrawTextInWindow` | **five** declarations that disagree, in no header: `(s32, u32, u32, u8*)`, `(s8, s32, s32, char*)`, `(char*, s32, s32, void*)`, `(struct window*, u32, u32, u8*)`, plus `(s32, s32, s32, char*)` added by [`f8eaf87f`](../commits/f8eaf87f.md) | the tree needs one canonical form; `f8eaf87f`'s asm constrains the parameter type and the caller's local type only **as a pair** |
+| `CreateSimpleMenuFromStringIds` | 3rd parameter typed `s32` in `overlay_25_init.c:38` and `main_0203D538.c:75` | **genuinely wrong** — it is a pointer (`add r2, r1, #0x1c` at [`f8eaf87f`](../commits/f8eaf87f.md)'s call site). Every earlier call site passes a literal `0`, so nobody had exercised it; that file carries a cast until the prototype is fixed |
+| `CloseTextBox2` | `overlay_25_init.c:9` declares `(s8)`; `overlay_31_02383880.c:16` declares `()` and calls it with **zero** arguments | the callee reads `r0`. Whether those zero-argument calls still match was not established ([`f8eaf87f`](../commits/f8eaf87f.md) declares one parameter) |
 
-The `overlay_25_init.c` case is the only *incorrect* one. Fixing it properly
+The `overlay_25_init.c` `UpdateWindow`/`sub_02027B1C` case and the
+`CreateSimpleMenuFromStringIds` row are the *incorrect* ones. Fixing it properly
 means retyping `ov25_0238B414`'s own parameter and its callers, which is its own
 piece of work.
 

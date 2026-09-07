@@ -1,0 +1,187 @@
+# `f8eaf87f` — Decomp `ov11_02307334`; correct three callee declarations it exposes
+
+| | |
+|---|---|
+| **Commit** | `f8eaf87f` (as of writing — renamed if amended or rebased) |
+| **Branch** | `decomp-continued`, on top of [`0cafbd14`](0cafbd14.md) |
+| **Verified** | all three ROMs: `pmdsky.us.nds: OK`, `pmdsky.eu.nds: OK`, `pmdsky.jp.nds: OK` |
+
+> **Unverified AI-authored reasoning.** Not part of the decompilation, never
+> merged, not authoritative. The PR diff and the matching build are the sources
+> of truth — see [the README](../README.md). Claims are labelled **fact** (read
+> off the asm/data, or from an existing in-tree header) or **inference**.
+
+---
+
+`ov11_02307334` (`0x02307334`, **1624 instructions in all three regions**) is a
+42-case dense switch over `*ov11_02324D8C`, driving the bag inventory menu, the
+TM info and confirmation dialogues, the gummi/IQ path and the move-forget flow
+through menus, text boxes and scroll boxes.
+
+## Landing shape — a split
+
+**Fact.** Function 145 of 215 in `asm/overlay_11_022FE5F8.s`, so both merge
+branches of `extract_function.py` are gated off and it **splits**: the 70
+functions after it move to `asm/overlay_11_02308D1C.s`, the function lands in
+`src/overlay_11_02307334.c` with a new `include/overlay_11_02307334.h`, and
+`main.lsf` gains two objects where it listed one.
+
+Predicted before the tool was run, by reading it and simulating its arithmetic;
+every number came out exactly as predicted — 10920 lines left in the truncated
+`.s`, `514 → 348` `.public` in its `.inc`, 188 in the new one, `main.lsf`
+1331 → 1333 in correct address order.
+
+## No landing debt — the first on this branch
+
+**Fact.** Unlike [`a562678d`](a562678d.md), [`a98b22af`](a98b22af.md) and
+[`0cafbd14`](0cafbd14.md), there is **no stale `extern` to reconcile**. The
+symbol has exactly one caller, `ov11_02304B4C`, in the same object and still in
+asm. Zero hits in `src/`, `include/`, `main.lsf` or any `.inc`; no
+`.word ov11_02307334` anywhere, so it is in no function-pointer table; and a
+scan of all 512 `.s` files for the little-endian encoding of its address finds
+nothing.
+
+## Three callee declarations corrected
+
+All three are **facts** read off the callees' own asm, all three are `-W error`
+blockers for this file, and all three are confirmed byte-neutral by the matching
+build rather than assumed.
+
+| declaration | was | now | evidence |
+|---|---|---|---|
+| `RemoveItemNoHoleCheck` | `u32 (struct item *)` | `u32 (s16 index)` | `asm/main_0200F390.s:292-294` does `mov r1,#6 / smulbb r1, r0, r1 / ldrb r0,[r2,r1]`. **`SMULBB` multiplies the low halfwords**, so `r0` is a signed 16-bit value, scaled by `sizeof(struct item)` = 6 |
+| `GetFirstUnequippedItemOfType` | `struct item *(s16)` | `s16 (s16)` | `asm/main_0200F26C.s:26-27` returns `lr << 16 >> 16`, a sign-extended **index**, or `-1` |
+| `ov10_022BCDA8` | `void (s32)` | `s32 (s32)` | its body's last statement is `sub_02033064(…)`, which returns `s32`; **this** function consumes the result at two sites |
+
+The first two are one error, not two: `RemoveFirstUnequippedItemOfType` — the
+only other caller — passed the second's pointer-typed *index* straight into the
+first's pointer-typed *index* parameter, so the two mistakes cancelled and the
+pair matched by accident. `src/overlay_10_022BCC60.c:98` gained the matching
+`return`.
+
+## Structural facts that drove the match
+
+**Case emission order is source order and is not ascending** (fact, read off the
+jump table): `0, 2, 1, 3, 17..25, 33, 34, 31, 32, 35..40, 26..30, 41`, then
+`4..16` last. Verified independently before any body was written, by compiling
+42 distinct empty cases and comparing the emitted table as a permutation —
+42 of 42.
+
+**Every case `break`s to a single trailing `return 0`;** `case 16` returns 1 and
+`case 15` falls through into it (fact: the `str` ending case 15 is immediately
+followed by case 16's label, which case 15's `bne` also targets). Whether the
+source wrote the fall-through or a duplicated `return 1` is **inference** — both
+produce these bytes.
+
+**The eight function-scope locals are declared in descending stack-address
+order**, which tiles the frame exactly to `0x5A0`. All 16 distinct `sp`
+displacements in the target are accounted for and consecutive gaps equal each
+object's exact size — zero padding, zero slot colouring.
+
+**The 43-instruction block shared by cases 32 and 34 is written out twice.**
+MWCC 2.0 does not tail-merge blocks of that size; factoring it into a static
+helper would not match.
+
+## Five shapes that look wrong and are not
+
+Each was measured by removing it, so a reviewer can see the cost rather than
+take this on trust.
+
+| where | the odd C | removing it |
+|---|---|---|
+| case 4 | `if (v1 != 8 && v1 == 4)` — logically just `v1 == 4` | −2 instructions, score 445 |
+| case 38 | `field_0x0 = 0x1a` immediately before an if/else that overwrites it in **both** arms | −3, score 675 |
+| case 1 | `field_0x24e = v6->id` likewise | −5, score 3165 |
+| case 21 | two structurally identical search loops written **differently** | −2, score 1840 |
+| case 12 | `if (field_0x8 == -2) ov11_02308EDC();` where the callee performs that test itself | the target emits the redundant guard |
+
+Case 34's switch labels are in source order `2, 1, 7` while MWCC emits the
+compare chain ascending `1, 2, 7`; reordering the labels keeps the instruction
+count but costs 15 structural rows.
+
+## The placeholder struct, and what it does not claim
+
+`struct unk_02324D8C` is a placeholder for the **0x330**-byte, 8-aligned state
+struct (`MemAlloc(0x330, 8)` in `ov11_02307244` — fact). 49 compile-time
+assertions check every offset the asm touches, the three sub-object
+identifications, and `sizeof == 0x330`.
+
+**The 0x14-byte object at `0x238` has to be a real nested struct, not flat
+fields** — fact, and codegen-relevant: the target holds `base + 0x238` in a
+callee-saved register across two calls, while flat fields make MWCC round the
+base to `#0x200` and re-offset per use, costing an instruction in case 26.
+
+`field_0x1c` is typed `struct struct_2` and `field_0xb4`
+`struct preprocessor_args`; both are **inference**, resting on arithmetic that
+closes (`0x1c + 0x98 = 0xb4`, `0xb4 + 0x50 = 0x104`) plus the member offsets the
+stores actually hit. `field_0x1c`'s identification rests on two instructions and
+is the weakest link; it is load-bearing for `preprocessor_args`' position.
+
+## Provisional declarations
+
+49 callees have no declaration anywhere and are declared `extern` in the `.c`
+with prototypes read off their own asm. **Every name is established** — each
+appears as a literal `bl <name>` in the target, and `ov11_02307300` as a pool
+`.word` — but the **argument types are inference** and should be narrowed as
+each callee lands.
+
+## Regions
+
+| kind | cost | evidence |
+|---|---|---|
+| 15 message ids, uniform **+0x2D20** under JAPAN | one file-scope offset macro, 16 sites | fact, computed per id |
+| 2 ids at **+0x1458**, 3 at **+0x1567** | two more macros | fact, computed per id |
+| 4 invariant ids | nothing | fact |
+| the `StringFromId` base (case 1) and the `CreateScrollBoxSingle` base (case 10) | one three-way `#if defined(EUROPE)` each | fact; shapes copied from `src/get_category_string.c:15-21` and `src/overlay_25_init.c:430-436` |
+
+**The asm's four `#ifdef JAPAN` code forks need no `#if` in the C** — fact, now
+confirmed by the JP build. Each exists only because exactly one of the two
+constants is an ARM rotated-8-bit immediate (`0x2B4`, `0x2BC`, `0x2C0`, `0x2C4`
+are; their JP counterparts are not), so writing `id + OFFSET` and letting MWCC
+choose `mov` versus a pool word reproduces all four. This was flagged as
+inference beforehand, with the two forks that also *reorder* three instructions
+named as the likeliest failures; they were not.
+
+**EUROPE differs from NORTH_AMERICA in exactly two constants** out of 1658 words
+(fact, computed word by word). Do not generalise the `+2`: the same object shows
+`+0x1C` for a different id band.
+
+**One coupling nothing enforces:** case 1 compares an id built with *this*
+function's macro against a table entry built with `OV11_02322CD8_OFFSET`. Both
+are `0x2D20` for JAPAN (fact, `…_data.s:1630-1634`), so it holds — but the two
+macros are independent.
+
+## Open questions for a reviewer
+
+- The 49 provisional prototypes' argument types are inference.
+- **The return type `s32` is genuinely undetermined by the bytes.** `mov r0,#N`
+  for a literal 0/1 is what `s32`, `int`, `u32`, `bool8` and `BOOL` all produce,
+  and the sole caller only zero-tests it. Chosen to match `src/main_0203D538.c`'s
+  structural twin.
+- Several other things match but are **not** discriminated: `ov11_02309E24`'s
+  `s16` return (`s32` is identical); the widths of three parameters passed only
+  `0`; `sub_0204019C(6, 0, 0, …)`'s two equal zero arguments; and
+  `ov11_02307300`'s arity, since it is never called here — only passed as a
+  callback.
+- **`DrawTextInWindow` is declared five mutually contradictory ways in the tree
+  and is in no header** (`src/overlay_31_02382820.c:38`,
+  `src/overlay_13_0238BDA8.c:7`, `src/overlay_25_init.c:61`,
+  `src/overlay_31_02383880.c:17`, plus this file). This function's asm
+  discriminates the *pair* of parameter and local type, not either alone; the
+  spelling chosen here is byte-neutral, but the tree needs one canonical form.
+- **`CreateSimpleMenuFromStringIds`'s 3rd parameter is demonstrably a pointer**
+  (`add r2, r1, #0x1c` at the call site) while `src/overlay_25_init.c:38` and
+  `src/main_0203D538.c:75` both type it `s32`. Every existing call site passes a
+  literal `0`, so nobody has exercised it; this is the first that does, which is
+  why case 31 carries a cast that should be deleted once the prototype is fixed.
+- `struct unk_02324D8C`'s field list is a **floor, not a total** — three scans by
+  three different definitions gave 32 / 35 / 42 offsets. It wants a second caller
+  before it is typed properly.
+- Whether the `+0x2D20` / `+0x1458` / `+0x1567` shifts really are
+  **message-string** id spaces is **unestablished** — nothing in the tree names
+  them. It does not affect the match, only naming.
+- The function keeps its `sub_<addr>`-style name: this was decompilation, not
+  identification. A reading of the constants suggests it is the TM/HM use flow
+  (`0xBB` / `0xBC` are `ITEM_TM_USED_TM` / `ITEM_TM_FOCUS_PUNCH`, and the
+  category test is `CATEGORY_TMS_HMS`), which is **inference** offered for a
+  future naming pass, not applied here.
