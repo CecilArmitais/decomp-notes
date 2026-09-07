@@ -1,13 +1,13 @@
-# `decomp-continued` — 1013 functions across 109 commits
+# `decomp-continued` — 1014 functions across 110 commits
 
 | | |
 |---|---|
 | **Branch** | `decomp-continued` |
-| **PR** | **#290 merged** (through `5ffad87a`), then **#291 merged** (through `6425efdd`, as `440d7b7d`). **Nine commits are unmerged**: `058707bc`, `5271b77a`, `ef68e88d`, `7b76a1b2`, `3fc6d8bd`, `24d1e500`, `a5f856ee`, `f47ce293` and `a562678d` sit on top of `51c365db` and are not yet in a PR. |
+| **PR** | **#290 merged** (through `5ffad87a`), then **#291 merged** (through `6425efdd`, as `440d7b7d`). **Ten commits are unmerged**: `058707bc`, `5271b77a`, `ef68e88d`, `7b76a1b2`, `3fc6d8bd`, `24d1e500`, `a5f856ee`, `f47ce293`, `a562678d` and `a98b22af` sit on top of `51c365db` and are not yet in a PR. |
 | **Base** | originally `upstream/main` @ `86ec9772`; after #290 the merge-base was `5ffad87a`; after #291 it was `440d7b7d`. **Rebased 2026-08-24 onto `51c365db`** (upstream PRs #293/#294, which the seven unmerged commits now sit on) |
-| **Commits** | 109 |
-| **Functions decompiled** | **1013** |
-| **Verified** | `build/pmdsky.us/pmdsky.us.nds: OK` at every commit. **EU and JP** were verified at the `a6ce70e5` tip, and for all three ROMs at `ef68e88d`, `7b76a1b2`, `3fc6d8bd`, `24d1e500`, `a5f856ee` and `a562678d`. `f47ce293` is US-only, which is sufficient: its five blocks carry no region directive and nothing they touch is region-varying |
+| **Commits** | 110 |
+| **Functions decompiled** | **1014** |
+| **Verified** | `build/pmdsky.us/pmdsky.us.nds: OK` at every commit. **EU and JP** were verified at the `a6ce70e5` tip, and for all three ROMs at `ef68e88d`, `7b76a1b2`, `3fc6d8bd`, `24d1e500`, `a5f856ee`, `a562678d` and `a98b22af`. `f47ce293` is US-only, which is sufficient: its five blocks carry no region directive and nothing they touch is region-varying |
 | **Notes written** | **retroactively**, after commit 50 |
 
 > **Unverified AI-authored reasoning.** Not part of the decompilation, never
@@ -154,6 +154,7 @@ both reviewing it incrementally and splitting it later feasible.
 | `a5f856ee` | Use generic local names in the five functions landed since 51c365db | -- | [notes](../commits/a5f856ee.md) |
 | `f47ce293` | Decomp the fixed-point helper cluster at the end of main_020504BC.s | 5 | [notes](../commits/f47ce293.md) |
 | `a562678d` | Decomp ActivateEndOfTurnEffects; monster::bide_move_id is a 2-byte enum move_id | 1 | [notes](../commits/a562678d.md) |
+| `a98b22af` | Decomp ApplyItemEffect; replace its stale extern with the new header | 1 | [notes](../commits/a98b22af.md) |
 
 ## Cross-cutting changes a reviewer should weigh
 
@@ -216,6 +217,28 @@ in the tree reads `bide_move_id` or `field_0xad`.
 
 **Worth raising upstream.** The field is conceptually a move id and pmdsky-debug
 sizes it as a byte; codegen requires 16 bits.
+
+### A stale extern retired, and a general jump-table fact ([`a98b22af`](../commits/a98b22af.md))
+
+Two things a reviewer may want beyond the diff.
+
+**`src/dungeon_projectile_throw.c` no longer declares `ApplyItemEffect`.** It
+had its own `extern` plus a live call site; that is replaced by an include of
+the new header. Worth noting because it is a landed, already-matching object and
+parameters 1-3 are exactly where a wrong spelling would surface, so its rebuild
+in all three regions is evidence about the signature rather than housekeeping.
+Agreement, not proof — `param_1`'s `char` spelling remains undetermined from the
+bytes.
+
+**`case ITEM_NOTHING:` is written explicitly above `default:`**, even though the
+jump table sends id 0 there. This was settled by surveying **all 786
+`add<cc> pc, pc, rX, lsl #2` dispatches in `asm/`**: 104 of the 105 rebased
+tables have a real case at index 0; rebases occur for offsets as small as 3, yet
+40 tables have 3-7 leading default entries un-rebased; and 82 have trailing
+default entries, which padding cannot explain. The table therefore spans the
+minimum to maximum *labelled* case, and leading/trailing default entries are
+explicit `case` labels sharing `default`'s body. That is a fact about MWCC, not
+about this function, and it will matter for the next switch-heavy target.
 
 ### A parameter type only a caller can see: `SetActionUseMovePlayer`
 
