@@ -1,0 +1,369 @@
+# `bbbc4e70` — Rephrase eight matched functions; drop index casts and magic numbers
+
+| | |
+|---|---|
+| **Commit** | `bbbc4e70` (as of writing — renamed if amended or rebased) |
+| **Branch** | `decomp-continued`, on top of [`6422dc78`](6422dc78.md) |
+| **Verified** | US ROM after each individual function: `build/pmdsky.us/pmdsky.us.nds: OK`. EU/JP were **not** ROM-built here — they are covered only by per-region scratch score 0 before landing (see *What "verified" means*) |
+
+> **Unverified AI-authored reasoning.** Not part of the decompilation, never
+> merged, not authoritative. The PR diff and the matching build are the sources
+> of truth — see [the README](../README.md). Claims are labelled **fact** (read
+> off the asm/data, or from an existing in-tree header) or **inference**.
+
+---
+
+This commit decompiles nothing. Eight function bodies that were **already
+matching** are re-spelled and re-landed, so every byte of the ROM is unchanged
+by construction and the whole diff is a claim about *source form* only.
+
+**Fact, read off `git show --stat`:** seven `src/*.c` files, `+554 / −603`. **No
+file under `include/` is touched. No `extern` is added or removed anywhere in
+the commit** (`git show bbbc4e70 | grep '^[+-]extern'` is empty). The only
+non-body change in the diff is two `#include` lines.
+
+| function | file | lines |
+|---|---|---|
+| `CreateGridCellConnections` | `src/overlay_29_0233E43C.c` | 320 → 278 |
+| `GenerateExtraHallways` | `src/overlay_29_0233C9E8.c` | 170 → 161 |
+| `ActivateEndOfTurnEffects` | `src/overlay_29_02311010.c` | 538 → 533 |
+| `ApplyDamageAndEffects` | `src/overlay_29_02308FBC.c` | 316 → 314 |
+| `CalcDamage` | `src/overlay_29_0230BBAC.c` | 635 → 631 |
+| `ApplyDamage` | `src/overlay_29_02308FBC.c` | 807 → **818** |
+| `ov11_022ED69C` | `src/overlay_11_022ED69C.c` | 242 → 240 |
+| `ov11_02307334` | `src/overlay_11_02307334.c` | 733 → **735** |
+
+Line counts are the commit message's. Five of the eight were re-measured
+independently by brace-counting both revisions and came out exactly as stated;
+the other three have multi-line signatures the counter did not resolve, so those
+three are **quoted, not verified**. Note the two that grew — see *Where this
+made the source worse*.
+
+## Shared-type changes
+
+**None.** Nothing in `include/` changed, so there is no layout, width or
+signedness question to review in this commit. That is the whole answer for the
+PR note's shared-type column.
+
+Two `#include` lines were added, both to `src/overlay_29_0233C9E8.c`:
+`"dungeon.h"` and `"dungeon_util_static.h"`. **Fact:** every name they bring in
+was already in the tree before this commit — `include/dungeon.h:11-12`
+(`DUNGEON_MAX_SIZE_X` 56, `DUNGEON_MAX_SIZE_Y` 32), `include/dungeon.h:18-27`
+(`TERRAIN_TYPE_*`), `include/dungeon_util_static.h:32` (`GetTerrainType`). **No
+name is introduced by this commit.**
+
+## The headline: a retraction, not a discovery
+
+`CreateGridCellConnections` carried eight `(u32)j` casts on array indices. The
+work log for its landing recorded them as load-bearing. **They are not**, and
+this commit removes all eight.
+
+If the note for [`6422dc78`](6422dc78.md) repeats that claim, **this commit
+retracts it.** The full write-up is `wip/CreateGridCellConnections/LEDGER.md`
+§ *Round 5 — the `(u32)j` casts removed; a RETRACTION*; the technique now sits in
+`docs/MATCHING_TIPS.md` → *Retail RECOMPUTES an index address your candidate
+reuses*.
+
+**Why the old claim was wrong is a method point, not a compiler point.** Four
+attempted cast-free spellings each cost 305 rows, and that was written down as
+*"the casts are load-bearing"* when all it supports is *"no spelling tried so far
+replaces them"*. The evidence that a plain-C form had to exist came from outside
+the measurement: **pret/pmd-red carries a matched sibling of this function
+written with no index casts** (fact, per the ledger; not re-checked while writing
+this note).
+
+**The mechanism, measured** (ledger Round 5 — these are scratch measurements,
+facts):
+
+| variant | result |
+|---|---|
+| `(s32)j` — a cast to `j`'s **own** type, semantically a no-op | score **0**, byte-identical to `(u32)j` |
+| the cast applied at **every** site instead of four | byte-identical to **no** casts |
+| `s32 jj = j;` (same-type copy) | score **8354** — copy propagation erases it |
+| `int jj = j;` (different type, no cast) | score **0** |
+| `+j`, `0 + j`, `(j)`, `j * 1`, `-(-j)`, `(j \| 0)`, `*(&j)` | all fold back — identical to plain `j` |
+
+**Inference for the mechanism** (stated as such in the ledger too): MWCC keys
+common-subexpression elimination on the address expression *including integer
+conversion nodes*. What the target needs is a **split** of the use-set — one
+class for the loop body, another for the `CreateHallway` argument lists that
+rematerialise their base — and any conversion node supplies it. Unsignedness was
+never the lever, which the identity-cast row shows directly.
+
+What landed is `int jj;` declared beside `s32 i, j;` with `jj = j;` as the first
+statement of the loop body, and `grid[i][jj]` at the four sites that must
+rematerialise. `int` and `s32` are distinct types to this front end
+(`docs/MATCHING_TIPS.md` → *`int` and `s32` are DISTINCT types*), which is why
+the alias survives where an `s32` one is propagated away.
+
+**An honesty flag a reviewer should hold onto:** `int jj` is *still* a
+compiler-shaped artifact. It is plain C and it claims nothing about types, which
+makes it better than an unsigned cast on a signed index — but retail's reason for
+splitting that use-set is **not established by the bytes**. Nobody should read
+`jj` as recovered source.
+
+## Magic numbers replaced with existing names
+
+Every substitution below was checked by arithmetic against the header that
+defines the name. All **fact**.
+
+| function | literal | name | check |
+|---|---|---|---|
+| `GenerateExtraHallways` | `(…terrain_flags & 3) == 1` | `GetTerrainType(…) == TERRAIN_TYPE_NORMAL` | `dungeon_util_static.h:34` is literally `flags & (NORMAL\|SECONDARY)`; `NORMAL` = 1 |
+| | `== 2` | `TERRAIN_TYPE_SECONDARY` | = 2 |
+| | `56`, `32`, `0x37`, `0x1f` | `DUNGEON_MAX_SIZE_X/_Y`, `…−1` | 56, 32 |
+| `ActivateEndOfTurnEffects` | `999` (×2) | `MAX_HP_LIMIT` | `dungeon_mode.h:20` = 999 |
+| | `0x250 0x247 0x248 0x24A 0x24B 0x24C 0x239 0x24D` | `DAMAGE_SOURCE_{HUNGER,BURN,CONSTRICTION,WRAP,CURSE,LEECH_SEED,SLUDGE,PERISH_SONG}` | 592, 583, 584, 586, 587, 588, 569, 589 — each converted and matched |
+| `ApplyDamageAndEffects` | `1` (entity type) | `ENTITY_MONSTER` | `dungeon_mode.h:690` = 1 |
+| | `0xC`, `0` (bide) | `STATUS_TWO_TURN_ENRAGED`, `…_NONE` | 12, 0 |
+| | `4, 0xA, 8, 0xF, 0xD` (reflect) | `STATUS_REFLECT_{COUNTER,MINI_COUNTER,MIRROR_COAT,METAL_BURST,VITAL_THROW}` | 4, 10, 8, 15, 13 |
+| | `2` | `MATCHUP_NEUTRAL` | `enums.h:3411` = 2 |
+| | `0x238` | `DAMAGE_SOURCE_DESTINY_BOND` | 568 |
+
+`GetTerrainType` is a `static inline`; `common.mk` builds with `-inline
+on,noauto`, so an explicitly-inline function is inlined and the call is
+byte-neutral — **confirmed by the build**, not assumed.
+
+**`999` in `CalcDamage` was deliberately left a literal.** It clamps `arr[0]`, an
+offense/damage value, not HP (fact: read the surrounding statements at
+`src/overlay_29_0230BBAC.c:556-566`). Spelling it `MAX_HP_LIMIT` would assert a
+meaning the code does not support. That restraint is correct, but it does leave
+two functions in one commit treating `999` differently; a reviewer may want a
+separate damage-cap constant.
+
+## Other rephrasings, by function
+
+- **`ov11_022ED69C`** — `const void *data1` → `const u8 *`, and the three
+  `void *` arithmetic expressions (`data1 + 4`, `data1 + 4 + v2*4`,
+  `spec + numPalettes`) get explicit typed casts. **This removes a dependence on
+  a compiler extension:** arithmetic on `void *` is a GNU extension the build
+  enables with `-gccext,on`, not standard C. `void *p4` → `u16 *p4` follows
+  `include/ground_bg.h:73-74`, where `unk1C`/`unk20` are already `u16 *` — the
+  old `void *` was **looser than the header**. Two chained assignments
+  (`a = b = p`) were split, and two locals moved to their point of use.
+- **`GenerateExtraHallways`** — two `continue` guards merged into one condition;
+  a repeated `d = (dir ± 2) & 6;` temp inlined; one stray brace block removed;
+  `int flag` → `s32 flag`.
+- **`ActivateEndOfTurnEffects`** — a ~110-line region that was indented four
+  columns too far is re-indented (pure whitespace); braces added round a body
+  whose `if` spans an `#ifdef JAPAN` fork, where an unbraced statement was a
+  hazard; and **one reused scalar `v1` is split into six single-purpose locals
+  `v4`–`v9`**, appended after the existing declarations.
+- **`ApplyDamageAndEffects`** — two dead brace levels removed and ~200 lines
+  re-indented; **the declaration list is reordered** (`result` moved to the
+  front, `k` and `v1` swapped).
+- **`CalcDamage`** — see below.
+- **`ov11_02307334`** — `buf[0x400]`, two `struct unk_02309DAC` and two `u16`
+  button variables move from function scope into the three `case` blocks that
+  use them, with the two `unk_02309DAC` collapsing to one name `sel` in two
+  disjoint scopes; `btn_e`/`btn_c` → `buttons`/`pressed`; `case 15` loses its
+  braces so its fall-through into `case 16` is visible; `v1--` on a message id
+  becomes the explicit `0x8d6 + OFFSET_2`; hex constants lowercased.
+
+**Two of these are worth flagging because they contradict advice recorded
+elsewhere and still matched.**
+
+1. [`f8eaf87f`](f8eaf87f.md) recorded that `ov11_02307334`'s *eight function-scope
+   locals declared in descending stack-address order* tile the frame exactly to
+   `0x5A0`. Three of those eight are now block-scoped and the build still
+   matches. **Fact:** block scoping did not move them. That earlier note's
+   framing is superseded to that extent; the slot map it describes is still the
+   right mental model, but function scope is not what pins it.
+2. [`a5f856ee`](a5f856ee.md) — the local-renaming commit — was careful to say
+   *"Declaration order is untouched … so no object changes."* Here declaration
+   order **was** changed in `ApplyDamageAndEffects`, and the ROM still matches.
+   That is not a contradiction (a5f856ee was avoiding a risk, not asserting the
+   reorder would break), but it does mean the reorder was a real experiment, and
+   it is only known safe for *this* function.
+
+## `CalcDamage`: two of the documented "necessary" locals are gone
+
+This is the change most likely to matter to a future matcher, and the commit
+message understates it as "one volatile local dropped".
+
+`docs/MATCHING_TIPS.md` → *A register-colouring/scheduling residue in one block
+… (CalcDamage, overlay_29)* documents the final block of this function at
+instruction level, and lists — **"all measured"** — a set of required
+ingredients, among them:
+
+- a **second** pointer-to-volatile alias (`po2` in the tip, `p2` in the tree)
+  aliasing `&arr[0]`, so the first pointer *dies at the load*;
+- a separate load temp (`dv` in the tip, `v8` in the tree), because *"the load
+  and store must stay two references"*.
+
+The landed source now has **neither**:
+
+```c
+/* before */                          /* after */
+p1 = &arr[0];                         p1 = &arr[0];
+p2 = &arr[0];
+…                                     …
+v9 = *p1 * v14;                       v9 = *p1 * v14;
+v8 = *p3;                             *p3 = *p3 * v7;
+*p3 = v8 * v7;                        *p1 = v9;
+*p2 = v9;
+if (v15 != 1) *p2 = v9 / v15;         if (v15 != 1) *p1 = v9 / v15;
+```
+
+**Fact:** the US ROM matches with the right-hand form. **What is not
+established** is which edit bought that. The same block also had six
+shift/add spellings rewritten as plain multiplies in the same pass —
+`v14 <<= 1` → `*= 2`, `v14 += v14 * 2` → `*= 3`, `v14 = v14 * 16 - v14` → `*= 15`,
+`v15 += v15 * 4` → `*= 5`, `v14 <<= 2` → `*= 4`, `v7 = v7 * 3` → `*= 3` — and
+those change the expression trees the value numbering sees. **The function was
+verified as a whole, not edit by edit**, so `p2` and `v8` are *jointly* removable
+with those rewrites; whether either is *individually* removable was not measured.
+
+**Action for a reviewer:** that MATCHING_TIPS entry now describes source that is
+no longer in the tree and was not updated by this commit. Either the entry's
+per-ingredient reasoning is wrong, or the multiply rewrites compensate for it.
+Both are checkable in `wip/CalcDamage/` and neither has been checked.
+
+The `int v10 = damage_mult;` lever from that same function (the documented
+`int`/`s32` copy-propagation block) is **untouched** and still present.
+
+## Where this made the source worse
+
+Honest accounting, because two functions grew.
+
+**`ApplyDamage` (+11 lines).** Real improvements — three locals initialised at
+declaration instead of three statements later, `item1/2/3` and `v7` scoped into
+their blocks, `v4 /= 2`, `mon1->hp -= …` in place of a temp, four `return`-ending
+`if`s chained with `else`, and a nest of `&&` turned into `continue` guards.
+Paid for with three shapes that are **less** idiomatic than what they replaced:
+
+| where | the new C | note |
+|---|---|---|
+| `item4->id` and four siblings | `(u32)item4->id == 0x153` | **casts were added**, on an `s16` field (`include/item.h:1627`), in the commit whose title says casts were dropped |
+| the same site | `if (GetFlag(item4->flags, 1))` on one line, `if (!GetFlag(item4->flags, 8) && …)` on the next — an unbraced nested `if` | reads like a bug |
+| the `f4` computation | a three-deep `if/else` where an `&&` chain stood, with `f4 = FALSE` written in two arms that already hold `FALSE` | |
+
+**No record explains these.** `wip/ApplyDamage/README.md` documents the original
+match (including that flag-test *form* at the `0x153` site is per-site evidence,
+not a rule) but predates this pass by weeks and says nothing about these three
+edits. They are presumably the price paid to hold the match while the rest of the
+function was cleaned up — that is **inference**, and it is not written down
+anywhere.
+
+**`ov11_02307334` (+2 lines).** From an added `default: break;`, a named `bool8
+v6f` replacing a cast-in-condition, and blank lines around the newly scoped
+declarations. Benign.
+
+## Declarations this now leans on harder — none changed, all worth a look
+
+The commit changes no declaration. But three of its cast removals make the tree's
+*existing* declarations load-bearing where a cast used to paper over them. This
+is exactly the trap the branch's newest MATCHING_TIPS entry
+(*A byte-match cannot validate a DECLARATION*) is about: **a pointer-type
+disagreement emits no instruction, so the build blesses either answer.**
+
+1. **`strcpy` is declared inside `src/overlay_11_02307334.c:206` as
+   `extern u8 *strcpy(u8 *dest, const u8 *src);`** — a non-standard spelling of a
+   standard-library function (fact). `buf` is `char[0x400]` (fact). The four
+   `strcpy((u8 *)buf, …)` casts are now gone, so the calls pass `char *` into a
+   `u8 *` parameter with an implicit conversion that MWCC accepts under
+   `-W error` (fact — the build passed). **The right fix is to declare `strcpy`
+   with `char *`**, which nobody has done; this commit made the wrong prototype
+   more visible rather than fixing it.
+2. **`CreateInventoryMenuOuter(…, (void *)ov11_02307300, …)` lost its cast**, so
+   a function designator now converts implicitly to a `void *` parameter. That is
+   a constraint violation in ISO C that only MWCC's leniency permits. Arguably
+   the cast should have stayed.
+3. The commit message counts "three redundant `(u8 *)` casts" for
+   `ov11_02307334`. The diff shows **four** `(u8 *)` sites plus the `(void *)`
+   one; two of the four are behind `#ifdef EUROPE`/`JAPAN`, so exactly three
+   casts compile per region. Bookkeeping, not substance — recorded so the numbers
+   reconcile.
+
+## What "verified" means here
+
+**Fact, from the commit message:** each function was measured at score 0 *in
+every region for which it has a target* before landing, and the **US** ROM was
+rebuilt after each individual function. **No EU or JP ROM build is claimed**, and
+none should be inferred — unlike [`f8eaf87f`](f8eaf87f.md), which does claim all
+three.
+
+**Corroboration found while writing this note (fact):** all eight
+`wip/<name>/match.c` harness files carry the *landed* text, not the pre-commit
+text — `int jj` in `CreateGridCellConnections`, `(u32)item3->id` in `ApplyDamage`,
+`GetTerrainType` ×19 in `GenerateExtraHallways`, `MAX_HP_LIMIT` in
+`ActivateEndOfTurnEffects`, and so on. So the per-region harnesses were
+re-pointed at the new bodies rather than left measuring the old ones.
+
+Two region caveats a reviewer should not trip over:
+
+- **`ov11_022ED69C` has exactly one region.** Its asm block contains no
+  preprocessor directives at all (asserted by its harness, per
+  `wip/ov11_022ED69C/STATUS.md`), so "all regions" is NA for that function and
+  there is nothing missing.
+- **`ApplyDamage`'s plain-EUROPE baseline is 10, not 0.** Per
+  `wip/ApplyDamage/STATUS.md`, those 10 are two literal-pool `.word` cells the
+  pmd-sky asm dump left as raw EU addresses (`0x02353e44`, `0x02353e40`) because
+  it had no name for them; `EUROPE.reloc.s` names them and reads 0. It is a
+  decomp.me limitation, not a source difference. The commit message's rejected
+  candidate *"scored 1195 in EUROPE against a landed baseline of 10"* is measured
+  against that same plain-EU target, so it is a genuine ~1185-row regression.
+
+## Rejected candidates — recorded, but only in the commit message
+
+The commit message names three rephrasings that were measured and dropped: one
+scoring 1195 in EUROPE, one that carried an artificial `damage_data++;
+damage_data--;` pair, and one that did not match at all. **A search of `wip/`
+found no artifact for any of them** — no ledger entry, no `cand/` file, no score
+table. Their details beyond that one sentence are **not recorded**, and this note
+does not reconstruct them.
+
+One rejection *is* documented, in `wip/CreateGridCellConnections/LEDGER.md`:
+`var/BEST.c`, identical to what landed plus a `static inline SetTerrainNormal`
+helper, **also scores 0** and was deliberately not landed, because an identical
+helper already exists file-locally at `src/dungeon_generation.c:18`. That is a
+reviewer's call, not a matching question — see the open questions.
+
+Also worth knowing (ledger, *Method note*): the two agent-delivered fixes for
+`CreateGridCellConnections` **did not compose as delivered** — one of them
+reintroduced 12 out-of-bounds accesses through a cell pointer while removing the
+casts, and both halves had to be re-read and recomposed by hand before the
+combination was measured. *"A candidate reported as score 0 is a claim about the
+score, not about the rest of the source."*
+
+## Open questions for a reviewer
+
+- **Is a source-form-only commit wanted at all?** It changes no bytes and no
+  names, and it rewrites large stretches of five recently-landed functions, which
+  makes those functions harder to re-review against their original notes. That is
+  a project-taste question, not a technical one.
+- **`docs/MATCHING_TIPS.md`'s `CalcDamage` entry is now stale** — it lists `po2`
+  and `dv` as measured-necessary and the landed source has neither. Which
+  ingredient actually carried the block is unresolved.
+- **`ApplyDamage`'s three regressions** (added `(u32)` casts on `item->id`, the
+  unbraced nested `if`, the three-deep `f4` nest) are unexplained in writing. If
+  they are match levers, they should be recorded as such; if they are not, they
+  should be reverted.
+- **`strcpy` should be declared `char *strcpy(char *, const char *)`** somewhere
+  shared, rather than `u8 *` in one `.c`. Dropping the casts made the
+  disagreement invisible instead of fixing it. The build cannot settle this — a
+  pointer-type disagreement emits nothing.
+- **`(void *)ov11_02307300` — should the cast come back?** Function-pointer to
+  `void *` is not a standard implicit conversion.
+- **`SetTerrainNormal`**: the `&= ~3; |= 1;` idiom appears seven times across the
+  two dungeon-generation functions in this commit and once already as a
+  `static inline` in `src/dungeon_generation.c:18`. A measured-at-0 variant using
+  a helper exists and was held back to avoid a second copy. Where should the one
+  copy live?
+- **Terrain flags as an enum is uncomfortable in two places** (both landed, both
+  byte-neutral, both arguably wrong as *English*): `terrain_flags &
+  TERRAIN_TYPE_IMPASSABLE_WALL` uses a "type" enumerator as a bit mask, and
+  `terrain_flags &= ~(TERRAIN_TYPE_NORMAL | TERRAIN_TYPE_SECONDARY)` spells `~3`
+  as a union of two *types* — where `TERRAIN_TYPE_CHASM` is itself defined as 3.
+  Meanwhile the identical expression in `src/overlay_29_0233E43C.c` was left as
+  `~3` / `1` **in this same commit**. Pick one.
+- **`999`** is `MAX_HP_LIMIT` in one function and a bare literal in another,
+  correctly (they clamp different quantities) — but the damage cap has no name.
+- **Whether `int jj` is the right thing to ship.** It is plain C, it removes
+  eight unsigned casts from signed indices, and it claims nothing — but it is
+  still a construct chosen for the compiler, and no reviewer should read it as
+  recovered source.
+- **`ov11_02307334`'s block-scoped locals and `ApplyDamageAndEffects`'s reordered
+  declarations both match, but only here.** Neither is evidence that scope or
+  declaration order is generally free in this toolchain — `MATCHING_TIPS` has
+  three separate entries arguing the opposite, and they are not retracted.

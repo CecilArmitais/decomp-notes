@@ -1,13 +1,13 @@
-# `decomp-continued` — 1016 functions across 112 commits
+# `decomp-continued` — 1151 functions across 124 commits
 
 | | |
 |---|---|
 | **Branch** | `decomp-continued` |
-| **PR** | **#290 merged** (through `5ffad87a`), then **#291 merged** (through `6425efdd`, as `440d7b7d`). **Twelve commits are unmerged**: `058707bc`, `5271b77a`, `ef68e88d`, `7b76a1b2`, `3fc6d8bd`, `24d1e500`, `a5f856ee`, `f47ce293`, `a562678d`, `a98b22af`, `0cafbd14` and `f8eaf87f` sit on top of `51c365db` and are not yet in a PR. |
+| **PR** | **#290 merged** (through `5ffad87a`), then **#291 merged** (through `6425efdd`, as `440d7b7d`). **Twenty-four commits are unmerged**: the twelve listed previously (`058707bc` … `f8eaf87f`), plus `e7a38dfa`, `3ce56d48`, `6422dc78`, `bbbc4e70`, `0ee40140`, `809e9377`, `97cce9df`, `76b9fd0b`, `5cda338e`, `8da3a5dd`, `cad4a75f` and `c99a813d`. All sit on top of `51c365db` and are not yet in a PR. |
 | **Base** | originally `upstream/main` @ `86ec9772`; after #290 the merge-base was `5ffad87a`; after #291 it was `440d7b7d`. **Rebased 2026-08-24 onto `51c365db`** (upstream PRs #293/#294, which the seven unmerged commits now sit on) |
-| **Commits** | 112 |
-| **Functions decompiled** | **1016** |
-| **Verified** | `build/pmdsky.us/pmdsky.us.nds: OK` at every commit. **EU and JP** were verified at the `a6ce70e5` tip, and for all three ROMs at `ef68e88d`, `7b76a1b2`, `3fc6d8bd`, `24d1e500`, `a5f856ee`, `a562678d`, `a98b22af`, `0cafbd14` and `f8eaf87f`. `f47ce293` is US-only, which is sufficient: its five blocks carry no region directive and nothing they touch is region-varying |
+| **Commits** | 124 |
+| **Functions decompiled** | **1151** |
+| **Verified** | `build/pmdsky.us/pmdsky.us.nds: OK` at every commit. **All three ROMs** at `ef68e88d`, `7b76a1b2`, `3fc6d8bd`, `24d1e500`, `a5f856ee`, `a562678d`, `a98b22af`, `0cafbd14`, `f8eaf87f`, `3ce56d48`, `6422dc78`, `bbbc4e70`, `0ee40140`, `809e9377`, `97cce9df`, `76b9fd0b`, `5cda338e`, `8da3a5dd`, `cad4a75f` and `c99a813d`. `f47ce293` and `e7a38dfa` are US-only on record — for `e7a38dfa` the three-region evidence is decomp.me score 0, not a linked EU/JP ROM, and the note says so. **`8da3a5dd` was amended**: as first committed it broke `OVY_13.sbin`, and the gate build that "verified" it had silently built the previous commit |
 | **Notes written** | **retroactively**, after commit 50 |
 
 > **Unverified AI-authored reasoning.** Not part of the decompilation, never
@@ -157,8 +157,90 @@ both reviewing it incrementally and splitting it later feasible.
 | `a98b22af` | Decomp ApplyItemEffect; replace its stale extern with the new header | 1 | [notes](../commits/a98b22af.md) |
 | `0cafbd14` | Decomp sub_0203D538; replace its stale extern with the new header | 1 | [notes](../commits/0cafbd14.md) |
 | `f8eaf87f` | Decomp ov11_02307334; correct three callee declarations it exposes | 1 | [notes](../commits/f8eaf87f.md) |
+| `e7a38dfa` | Decompile GenerateMission (0x0205D224) | 1 | [notes](../commits/e7a38dfa.md) |
+| `3ce56d48` | Decompile GenerateExtraHallways (0x0233C9E8) | 1 | [notes](../commits/3ce56d48.md) |
+| `6422dc78` | Decompile CreateGridCellConnections (0x0233E43C) | 1 | [notes](../commits/6422dc78.md) |
+| `bbbc4e70` | Rephrase eight matched functions; drop index casts and magic numbers | 0 | [notes](../commits/bbbc4e70.md) |
+| `0ee40140` | Decompile 16 callees of the combat and dungeon-generation functions | 16 | [notes](../commits/0ee40140.md) |
+| `809e9377` | Decompile 11 more callees; give them headers and drop 40 call-site declarations | 11 | [notes](../commits/809e9377.md) |
+| `97cce9df` | Decompile 13 more callees; all merge at a file boundary | 13 | [notes](../commits/97cce9df.md) |
+| `76b9fd0b` | Decompile 11 more callees; two cheap neighbour clusters | 11 | [notes](../commits/76b9fd0b.md) |
+| `5cda338e` | Decompile 12 more callees; clear the head of overlay_11_02308D1C | 12 | [notes](../commits/5cda338e.md) |
+| `8da3a5dd` | Decompile 26 more callees; clear six asm files entirely | 26 | [notes](../commits/8da3a5dd.md) |
+| `cad4a75f` | Decompile 38 more callees; clear five more asm files entirely | 38 | [notes](../commits/cad4a75f.md) |
+| `c99a813d` | Decompile the head of overlay_11_023090DC; type the parent-menu tables | 5 | [notes](../commits/c99a813d.md) |
 
 ## Cross-cutting changes a reviewer should weigh
+
+### The parent-menu tables were typed from the weakest prototype that accepted them ([`c99a813d`](../commits/c99a813d.md))
+
+**Fact.** `asm/overlay_11_022ECD24_data.s` defines `ov11_02322E00` as five 8-byte
+entries — a `.word` string id followed by four bytes of value, terminated by
+`00 00 00 00 / FF FF FF FF`. That is `struct unk_0202A5CC` (`u16`, 2 pad, `s32`),
+which `include/main_0202A66C.h` already declares and which
+`CreateParentMenuFromStringIds` already takes.
+
+**Fact.** Before this commit `src/overlay_11_02307334.c` held, for the same shape:
+
+* four tables declared `extern s32 ov11_02322D10;` — **a scalar for an array**,
+  which is why every call site wrote `&ov11_02322D10`;
+* `struct unk_02322D38` (`u16; u16; u32`), **byte-identical** to
+  `struct unk_0202A5CC` and declared under a second name;
+* its own `extern u8 CreateParentMenuFromStringIds(void *, u32, void *, void *);`,
+  whose `void *` fourth parameter is what let all of the above compile.
+
+`c99a813d` types all seven globals `struct unk_0202A5CC[]`, deletes the duplicate
+struct, yields the prototype to the header, and drops five now-redundant `&`.
+Byte-neutral: `&scalar` and an array decay to the same address.
+
+**A reviewer should know how nearly this went the other way.** The two new tables
+were first typed `u8[]` to fit the existing `void *` prototype. That version
+**compiled under `-W error` and the US ROM matched** — because the difference is
+a pointer *type*, which changes no address and no width. The build is
+structurally unable to distinguish the two, so it would have shipped as a sixth
+wrong declaration. Only the data settles it.
+
+**Inference, flagged as such.** That these tables are *menus* rests on the
+consumer's name and on the entries' `u16` looking like string ids. The layout is
+fact; the meaning is not, and no name was introduced for it.
+
+### An 809-instruction function closed by an allocator-ordering rule ([`c99a813d`](../commits/c99a813d.md))
+
+**Fact, measured.** `ov11_023090DC` reached `STRUCT 0` — every instruction,
+immediate and branch target correct, 820 rows against 820 — while a single
+register permutation over 35 rows held it at score 230. Thirteen approaches were
+falsified first and are listed in the wip's ledger, including a 120-permutation
+sweep of function-scope declaration order.
+
+**Fact, measured.** MWCC colours the locals that live across a call in
+**case-scope declaration order**, lowest free register first, and a local
+assigned only inside a loop body does not join that group from case scope. Four
+qualifying locals therefore reach only `r4`–`r7`. The target needs one on `r8`,
+so a **fifth member must exist** — which is why the earlier sweep found nothing.
+Two independent routes then reached score 0.
+
+**The transferable part**: the earlier ledger recorded "declaration order
+EXHAUSTED" as a property of the *axis*. It was a property of the *set* — four
+variables. A negative result on an ordering sweep is only as general as the set
+swept, and should record which variables were in it.
+
+### Three functions that do not exist in the JAPAN build ([`cad4a75f`](../commits/cad4a75f.md))
+
+**Fact.** `ov29_022FBD08`, `ov29_022FBD24` and `ov29_022FBD80` sit inside one
+`#ifndef JAPAN` in `asm/overlay_29_022FBC4C.s`. Their landed definitions *and*
+their prototypes carry the same guard, so `check_landed_guards.py` reports three
+definitions at conditional depth 1 for this commit — **correct here**, not the
+defect that check normally catches.
+
+### `struct dungeon` gained a sub-object to force one base register ([`cad4a75f`](../commits/cad4a75f.md))
+
+**Fact.** `struct unk_022FBD24` groups the two members at `0x3DCC` and `0x3E1C`
+into one sub-object: `u32[20]` then `u32`, same order, same offsets, so the
+layout is byte-identical. **Inference, but strongly evidenced:** the grouping is
+what makes MWCC materialise the single `add r3, r0, #0x3c00` base the target
+uses; without the type `src/overlay_29_022FBBEC.c` does not compile at all. The
+four comment lines moved verbatim with the members, which is the one mechanical
+exception the no-comments rule allows.
 
 ### `struct damage_calc_diag` gained three padding bytes ([`3fc6d8bd`](../commits/3fc6d8bd.md))
 
@@ -455,7 +537,7 @@ these.** Known outstanding:
 | `UpdateWindow`, `sub_02027B1C` | `overlay_13_0238BDA8.c` declares both as `s8` | harmless; left to preserve an upstream annotation |
 | `sub_0202836C` | **five** declarations that disagree: `int`, `s32`, `s8`, `s8`, and `s32` added by [`702c4c85`](../commits/702c4c85.md) | kept out of `window.h` so no overlay sees a conflict |
 | `DUNGEON_PTR` (data) | `overlay_29_02308FBC.c` declares it scalar; `dg_camera.c`, `dg_uty.c`, `dungeon_ai.c` declare `*DUNGEON_PTR[]` | **deliberate** — the array form lets MWCC CSE the load and costs three instructions ([`5271b77a`](../commits/5271b77a.md)) |
-| `DrawTextInWindow` | **five** declarations that disagree, in no header: `(s32, u32, u32, u8*)`, `(s8, s32, s32, char*)`, `(char*, s32, s32, void*)`, `(struct window*, u32, u32, u8*)`, plus `(s32, s32, s32, char*)` added by [`f8eaf87f`](../commits/f8eaf87f.md) | the tree needs one canonical form; `f8eaf87f`'s asm constrains the parameter type and the caller's local type only **as a pair** |
+| `DrawTextInWindow` | **five** declarations that disagree, in no header. [`8da3a5dd`](../commits/8da3a5dd.md) landed the definition (`s32 window_id`) and replaced four of them with the header | **The fifth must stay.** `overlay_13_0238BDA8.c`'s `DrawPersonalityTestDebug` holds the id in an `s8` local, so against the header's `s32` the call gains a sign extension retail does not emit — replacing it broke `OVY_13.sbin`. Retail's TUs genuinely disagreed here; the per-TU declaration is evidence, not untidiness |
 | `CreateSimpleMenuFromStringIds` | 3rd parameter typed `s32` in `overlay_25_init.c:38` and `main_0203D538.c:75` | **genuinely wrong** — it is a pointer (`add r2, r1, #0x1c` at [`f8eaf87f`](../commits/f8eaf87f.md)'s call site). Every earlier call site passes a literal `0`, so nobody had exercised it; that file carries a cast until the prototype is fixed |
 | `CloseTextBox2` | `overlay_25_init.c:9` declares `(s8)`; `overlay_31_02383880.c:16` declares `()` and calls it with **zero** arguments | the callee reads `r0`. Whether those zero-argument calls still match was not established ([`f8eaf87f`](../commits/f8eaf87f.md) declares one parameter) |
 

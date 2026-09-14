@@ -1,0 +1,736 @@
+# `8da3a5dd` — Decompile 26 more callees; clear six asm files entirely
+
+| | |
+|---|---|
+| **Commit** | `8da3a5dd` (as of writing — renamed if amended or rebased) |
+| **Branch** | `decomp-continued`, on top of [`5cda338e`](5cda338e.md) |
+| **Verified** | all three ROMs: `pmdsky.us.nds: OK`, `pmdsky.eu.nds: OK`, `pmdsky.jp.nds: OK` |
+| **Size** | 77 files, +1019 / −1948 |
+
+> **Unverified AI-authored reasoning.** Not part of the decompilation, never
+> merged, not authoritative. The PR diff and the matching build are the sources
+> of truth — see [the README](../README.md). Claims are labelled **fact** (read
+> off the asm/data, or from an existing in-tree header or the diff) or
+> **inference**.
+
+> **This note is backfilled.** It is reconstructed from the commit message, the
+> diff, and the twelve `wip/<group>/` directories (`STATUS.md`, and `LEDGER.md`
+> where one exists), which *were* written alongside the work. Every score,
+> census and falsified candidate quoted below comes from one of those; **nothing
+> was re-measured while writing this note**, and no build was run. Where a
+> section says nothing was falsified, that is the wip directory's own statement,
+> not a gap being papered over.
+
+---
+
+Twenty-six functions in twelve groups. It is a **file-clearing** commit rather
+than a function-of-interest commit: each group was chosen so that it consumes a
+`.s` file's head or the whole file, never leaving a function stranded in the
+middle. Fourteen of the twenty-six are callees of functions this branch landed
+earlier; the other twelve are simply the neighbours that had to go first to
+reach a file boundary (**per the commit message** — the split between the two
+sets is not re-derived here).
+
+## What landed, and what it did to the build
+
+**Fact** (read off the `main.lsf` diff and the file renames in `--stat`):
+
+| group | `.s` | functions | outcome |
+|---|---|---|---|
+| 1 | `overlay_29_0231EDFC.s` | `TryHurl` | **file consumed** |
+| 2 | `overlay_29_0230E064.s` | `TryRecruit` | **file consumed** |
+| 3 | `overlay_29_0234B130.s` | `ov29_0234B130`, `ov29_0234B1A4`, `LogMessageByIdWithPopupCheckParticipants`, `WaitUntilAlertBoxTextIsLoadedWrapper`, `LogMessageByIdWithPopupCheckUser`, `LogMessageWithPopupCheckUser`, `LogMessageByIdQuiet` | **file consumed** (all 7) |
+| 4 | `overlay_29_0231B1B8.s` | `TryActivateBadDreams` | **file consumed** |
+| 5 | `overlay_29_02301D84.s` | `OtherMonsterAbilityIsActive` | **file consumed** |
+| 6 | `main_02050300.s` | `SetItemAcquired` | **file consumed** |
+| 7 | `overlay_29_0230F9A4.s` | `ov29_0230F9A4`, `TrySpawnEnemyItemDrop` | head cleared → `overlay_29_0230FB30.s` |
+| 8 | `main_02051504.s` | `RetrieveFromItemList1`, `IsForbiddenFloor` | head cleared → `main_020515C4.s` |
+| 9 | `main_020251F0.s` | `sub_020251F0`, `StrncpySimpleNoPadSafe` | head cleared → `main_02025230.s` |
+| 10 | `main_020261F4.s` | `sub_020261F4`, `sub_02026204`, `DrawTextInWindow` | head cleared → `main_02026268.s` |
+| 11 | `main_0202B568.s` | `sub_0202B568`, `GetSimpleMenuResult__0202B870` | head cleared → `main_0202B5C8.s` |
+| 12 | `main_020022C4.s` | `sub_020022C4`, `sub_020022D0`, `RandIntSafe` | head cleared → `main_02002318.s` |
+
+**No `.s` was split.** Every extraction hit `extract_function.py`'s
+*merge into the previous `main.lsf` object* path, so `main.lsf` **loses six asm
+objects and renames six** and gains no new ones — the cheapest landing shape
+this tool has, and the reason the groups were picked the way they were. That is
+the one structural difference from [`f8eaf87f`](f8eaf87f.md), which split a
+215-function `.s` down the middle.
+
+**New untracked files: none.** Because nothing split, there is no new
+`.s`/`.inc`/`.c` for `precommit.py --commit`'s `git add -u` to miss. (The six
+renames *are* adds from git's point of view, but they were staged — the commit
+contains them.)
+
+## Shared-type changes — read this section
+
+The commit message lists **three**. The diff contains **four**; the fourth is
+also the one whose consequences are least obvious. All four are in `include/`
+and visible to other translation units.
+
+### 1. `struct team_member`'s first byte: bitfield pair → `u8 flags` (`common.h`)
+
+```c
+/* before */                  /* after */
+u8 f_is_valid : 1;            u8 flags;
+u8 flags_unk1 : 7;
+```
+
+**Layout-identical** — one byte at offset 0, before and after (fact).
+
+**Why it is required** (facts, measured in `wip/TryRecruit/STATUS.md` §1):
+
+* `TryRecruit` writes the whole byte in **one** store — `mov r4,#1 / orr r1,r4,#2
+  / strb` with no load. Two bitfield assignments always emit the
+  read-modify-write (`ldrb ; bic ; orr ; and #0xff ; bic ; orr`), and MWCC never
+  folds the load away even though the two fields together cover all eight bits.
+  Measured: bitfields **825–1798**, `flags = TRUE; flags |= 2;` **0**.
+* The roster scan reads bit 0 through `include/util.h`'s
+  `static inline bool8 GetFlag(u8 flag, u8 bit)` — `ldrb ; tst #1 ; movne ;
+  moveq ; tst #0xff ; beq`. A `u8 : 1` member gives `lsl #0x1f ; lsrs #0x1f`
+  instead, and cannot be *passed* to `GetFlag` at all.
+
+**Blast radius.** `struct team_member` appears in 16 `src/` files. Neither old
+field name is referenced anywhere outside the declaration (grep: the only other
+`f_is_valid` / `flags_unk1` hits in the tree are in `struct monster`-family
+declarations in `dungeon_mode.h`, a different struct) — so nothing had to be
+rewritten, and the three matching builds cover the 16 files. The one new
+reference is `src/dungeon_recruitment.c:398`,
+`GetFlag(GetActiveTeamMember(i)->flags, 1)`.
+
+**Inference, not fact:** that bit 0 still *means* "valid". The change deletes a
+name that asserted it. The new spelling matches what every other flag byte in
+the tree already does (`item::flags`, `move::flags0`, `monster::flags`).
+
+### 2. `struct unk_02026130::field_0x4`: `u8[4]` → `u8[0x118]` (`main_0202613C.h`)
+
+Total size 8 → **0x11C**. Required: `DrawTextInWindow` declares one of these as
+a **local**, so its size sets the frame.
+
+*Fact*, pinned three independent ways (`wip/main_020261F4_head/STATUS.md` §2):
+`DrawTextInWindow`'s own frame (`sub sp,sp,#0x124`, struct at `sp+8`);
+`AppendStandardStringToMission` in the same `.s` (frame `0x528`, struct at
+`sp+0x40c`); and `ShowStringIdInDialogueBox` (`asm/main_0202F190.s`), where the
+0x400 scratch buffer following the struct sits at `window+0x128` against the
+struct at `window+0xc`.
+
+*Byte-neutral for existing users* — fact: every landed user of the type takes a
+**pointer** (`sub_0202613C` and the eight wrappers); nothing takes it by value
+or by `sizeof`.
+
+*Deliberately not claimed*: the interior. A finer layout
+(`u8 field_0x0[4]; u8 field_0x4[0x10c]; u32 field_0x110; u32 field_0x114; u32
+field_0x118;`) is evidenced for two of those three words by `sub_02025E84`'s
+stores and **was also measured at score 0**; the minimal grow was shipped
+because it adds no claim the landing has to defend. `field_0x118` in the finer
+form is *not* evidenced at all — it is only the remainder to 0x11C.
+
+### 3. `alert_box_info::alert_box_window_id`: `u8` → `s8` (`overlay_29_0234B024.h`)
+
+*Fact*: `ov29_0234B130` stores −2 there as `mvn ip,#1` + `strb`. Against a `u8`
+field MWCC narrows the constant at compile time and emits `mov ip,#0xfe` —
+which is exactly what the unpatched context produced, and it was the only
+structural row left at that point (score went 235 → 35 when it was fixed).
+
+*Corroborated independently of this run*: **seven `ldrsb` reads of offset 0xCEC**
+in `asm/overlay_29_0234B4CC.s` (lines 203, 220, 231, 236, 258, 317, 339), e.g.
+`AlertBoxIsActive` doing `ldrsb r0,[r0,#0xec] / mvn r1,#1 / cmp r0,r1`. A `u8`
+field cannot be read with `ldrsb`.
+
+Width-preserving, so nothing after it moves.
+
+### 4. `alert_box_info::field_0xc92`: `u8` → `u16` — **not mentioned in the commit message**
+
+*Fact*: `ov29_0234B1A4` stores a **halfword** there
+(`ldr r1,[r2,#4] / add r1,r1,#0xc00 / strh r3,[r1,#0x92]`). A `u8` can only ever
+produce `strb`.
+
+**This one is only partly layout-preserving, and a reviewer should check the
+claim rather than take the commit message's "all layout-preserving" at face
+value.** Derived by hand from the header text plus MWCC's alignment rule (**not**
+re-compiled while writing this note):
+
+| member | offset before | offset after |
+|---|---|---|
+| `frames_until_close` (`s16`) | 0xC90 | 0xC90 |
+| `field_0xc92` | 0xC92 (`u8`) | 0xC92–0xC93 (`u16`) |
+| `field_0xc94` | **0xC93** | 0xC94 |
+| `field_0xc95` | **0xC94** | 0xC95 |
+| `field_0xc96` | **0xC95** | 0xC96 |
+| `field_0xc97` | **0xC96** | 0xC97 |
+| (implicit pad) | 0xC97 | — |
+| `loading_status` (`u32`) | 0xC98 | 0xC98 |
+
+So **four `u8` members each move one byte**, the tail pad disappears, and
+`loading_status` and everything after it — including `preprocessor_args` and
+`alert_box_window_id` — are unmoved, and the struct's total size is unchanged.
+The argument that this is safe is that **nothing in the tree reads those four
+members**: grep over `src/` and `include/` finds exactly five references to any
+of these fields, all in `src/overlay_29_0234B104.c` (this commit's own file:
+`alert_box_window_id`, `frames_until_close`, `field_0xc92`, `loading_status`) and
+`src/overlay_29_0234BA54.c:31` (`frames_until_close` only). Fact, and it is why
+the three matching builds do not disturb it either way.
+
+The header's own field *names* are the second argument: with `u8 field_0xc92`,
+the member called `field_0xc94` was sitting at 0xC93. **Inference** (mine, in
+this note): the widening makes the names true again, which is evidence that the
+`u8` was the error rather than the names.
+
+Verification for changes 3 and 4, from `wip/overlay_29_0234B130_all/STATUS.md`:
+`tools/offsets.py` turns all 31 offsets/widths/signednesses the asm spells out
+into array bounds that go negative when false, compiles them against the real
+per-region context, then compiles each assertion **inverted** and requires the
+compiler to reject it. **31/31 hold and 31/31 negative controls fire, in all
+three regions.**
+
+### Side effect of the no-comments rule, worth one line
+
+The `// 0xCEC` offset marker on `alert_box_window_id` is gone from the header:
+the line changed, so its trailing comment counted as an added comment and was
+stripped. Fact (visible in the diff). Nothing else in these headers lost a
+comment.
+
+## Two more cross-file changes that are not struct layout, but behave like it
+
+### `sub_02026194` goes from one argument to three (`include/main_02026174.h`)
+
+```c
+-void sub_02026194(struct unk_02026130* p);
++void sub_02026194(struct unk_02026130* p, u32 flags, char* string);
+```
+
+This edits an **already-landed, already-matching** function. *The arity is a
+fact*: `sub_02020BC4` (`asm/main_0201E3AC.s`) does `tst r1,#0x400` / `#2` / `#4`
+and `strh r1,[r4,#0x60]`, and `str r2,[r4,#0x88]` / `[r4,#0x84]`, and every asm
+caller of the wrapper passes all three (e.g. `ShowStringInDialogueBox`,
+`asm/main_0202F190.s`: `mov r1,r7 / add r0,r4,#0xc / add r2,r4,#0x128 / bl
+sub_02026194`). The wrapper was forwarding registers it never named.
+
+**It was measured, not reasoned about**: `sub_02026194`'s own pre-landing asm was
+recovered from git (`e865b697^:asm/main_0202598C.s`, lines 996–1003) and *both*
+the one-argument form as landed and the three-argument rewrite score **0**
+against it. No C caller is affected — every caller is in `asm/`
+(`main_0202D0EC.s` ×2, `main_0202F190.s` ×2, `main_0202FD50.s` ×1), grepped.
+
+*Not decided by the bytes*: `u32 flags` vs `u16`. The callee stores it 16 bits
+wide (`strh`), but a 16-bit parameter would invite a narrowing at two call sites
+for no reason. Both measured at score 0.
+
+### Two headers widen the include graph
+
+* `include/main_020514CC.h` gains `#include "dungeon.h"` (both new prototypes
+  name `struct dungeon_floor_pair`). Two includers today:
+  `src/main_020514CC.c`, `src/main_0205D11C.c`.
+* `include/overlay_29_0234B104.h` gains `#include "dungeon_mode.h"` (for
+  `struct entity`). It now has **13** includers, twelve of them added by this
+  commit.
+
+Both are facts from the diff; both are covered by the three builds. Flagged only
+because widening a header's include set is the kind of change that is free until
+it isn't.
+
+## Declarations: 37 replaced, one deliberately kept
+
+This is the part of the commit that a build structurally cannot check, and it is
+where most of the reviewer-relevant judgement lives. Two declarations in two
+translation units never meet, so the compiler never sees a disagreement and the
+ROM still matches either way — **only grep finds these**.
+
+**Counted from the diff** (fact): the commit removes **38 `extern` lines** from
+`src/`; one of them (`sub_02020BC4`) is a re-declaration rather than a deletion,
+leaving **37 call-site declarations replaced across 23 caller files**. The commit
+message says "thirty-five … across twenty-one files", and says
+`GetSimpleMenuResult__0202B870` "had five declarations" where the diff removes
+**six** (`main_0203D538.c`, `overlay_11_02307334.c`, `overlay_17_0238B10C.c`,
+`overlay_18_0238BF60.c`, `overlay_24_init.c`, `overlay_25_init.c`). The
+`wip/main_0202B568_head/STATUS.md` census also lists five, so the sixth was found
+during the landing. **The prose undercounts; nothing is missing from the diff.**
+I did not determine why the message was not updated.
+
+Per-symbol, from the diff:
+
+| symbol | declarations replaced | agreed with the landed signature? |
+|---|---|---|
+| `LogMessageByIdWithPopupCheckUser` | 7 | yes, all identical |
+| `GetSimpleMenuResult__0202B870` | 6 | **no** — all six said `(s8)`, the definition takes `s32` |
+| `StrncpySimpleNoPadSafe` | 5 | **no** — all five said `u32 n`, the loop's `ble` is a signed test |
+| `DrawTextInWindow` | 4 (of 5 in the tree) | **no** — three mutually different spellings |
+| `RandIntSafe`, `TryHurl`, `ov29_0234B1A4` | 2 each | `RandIntSafe`/`TryHurl` identical; `ov29_0234B1A4` was **K&R** `extern int ov29_0234B1A4();` ×2 |
+| `IsForbiddenFloor`, `SetItemAcquired`, `TryRecruit`, `TrySpawnEnemyItemDrop`, `OtherMonsterAbilityIsActive`, `WaitUntilAlertBoxTextIsLoadedWrapper`, `TryActivateBadDreams`, `ov29_0230F9A4` | 1 each | identical |
+| `LogMessageByIdWithPopupCheckParticipants` | 1 | **no** — 5th parameter was `s32`; the callee reads it `ldrsh lr,[sp,#8]` |
+
+The three genuine width disagreements each rest on a fact:
+
+* **`StrncpySimpleNoPadSafe(…, s32 n)`** — the loop test is `cmp r2,#0 /
+  sub r2,r2,#1 / ble`, a **signed** compare, in all three regions. With `u32 n`
+  it could only ever be false at 0.
+* **`GetSimpleMenuResult__0202B870(s32 window_id)`** — the callee's own bytes
+  cannot choose between `s8` and `s32` (the `(s8)` spelling **also scores 0**,
+  `/scratch/Nn7yV`). It was settled by measuring the **callers** instead:
+  `tools/callers.sh` compiled all five known callers both ways and byte-compared
+  the objects — **identical in all three regions**, with a deliberately wrong
+  `u8` prototype as a negative control reporting all five CHANGED. `s32` also
+  matches every landed definition in the window-id family
+  (`GetSimpleMenuField0x1A4` directly above it, `GetWindowContents`,
+  `CloseSimpleMenu`, `IsSimpleMenuActive`, `sub_0202B530`, `sub_0202B544`).
+* **`LogMessageByIdWithPopupCheckParticipants(…, s16 val)`** — `ldrsh lr,[sp,#8]`
+  straight out of the incoming stack slot. `s32` gives `ldr`; any unsigned
+  16-bit type (including an `-enum min` enum with only positive enumerators)
+  gives `ldrh`.
+
+### The one that was kept, and why it matters most
+
+`src/overlay_13_0238BDA8.c` **still carries its own**
+`extern void DrawTextInWindow(s8 window_id, s32 x, s32 y, char *string);` — the
+file is not touched by this commit at all.
+
+**Fact** (read off the file): that TU's `DrawPersonalityTestDebug(s8 window_id)`
+takes the window id as an `s8` **parameter** (the commit message says "local";
+it is a parameter) and forwards it unchanged to four `DrawTextInWindow` calls.
+Against the new header's `s32`, each call needs a sign extension retail does not
+emit. **The commit message records that replacing it broke `OVY_13.sbin`** — i.e.
+this was found by a failed build, not predicted.
+
+The conclusion the commit draws, and it is the right one to put in front of a
+reviewer: **retail's own translation units disagreed about this prototype.** A
+call-site declaration that contradicts the header is therefore *evidence about
+the original source*, not a defect to tidy away. This is the second time on this
+branch that the shape of a declaration turned out to be load-bearing (see
+[`f8eaf87f`](f8eaf87f.md), where `ChangeMonsterAnimationToIdle`'s `enum` spelling
+cost two rows).
+
+### What this does to `DrawTextInWindow`'s open question
+
+[`f8eaf87f`](f8eaf87f.md) left as an open question that `DrawTextInWindow` was
+"declared five mutually contradictory ways in the tree and is in no header". This
+commit gives it a canonical declaration —
+`void DrawTextInWindow(s32 window_id, s32 x, s32 y, char* string)` in
+`include/main_02026174.h` — and converts four of the five. It does **not** close
+the question, and in one respect it sharpens it:
+
+* `src/overlay_25_init.c` and `src/overlay_31_02383880.c` pass a **pointer** as
+  the first argument. Both call sites now carry a `(s32)` cast:
+  `DrawTextInWindow((s32)output, …)` and `DrawTextInWindow((s32)w, …)` (fact,
+  in the diff). `wip/main_020261F4_head/STATUS.md` **recommended leaving all five
+  alone** for exactly this reason; the landing went the other way. The casts are
+  byte-neutral (a pointer and an `s32` are both a word in `r0`, and all three
+  ROMs match), but the tree now asserts `s32 window_id` at two sites that
+  demonstrably hand it something pointer-shaped.
+* `src/overlay_31_02382820.c` needed **no** cast: its seven call sites pass
+  `u8 *str_buff` / `u8 *str` into the header's `char *string`. Fact — the diff
+  adds no cast and the build accepts it. **Inference**: the build's
+  `-W noimpl_signedunsigned` is what lets `unsigned char *` reach `char *`
+  quietly while pointer-to-integer still needs the explicit cast. Not verified.
+
+So one canonical declaration now exists, four TUs use it, one TU deliberately
+does not, and two TUs satisfy it with a cast that papers over a real
+disagreement about what the first parameter *is*. **That is still an open
+question, and it is arguably more visible now than before.**
+
+### A disagreement this commit did not resolve
+
+`ChangeMonsterAnimationToIdle` now has **three** declarations in the tree, two
+of which this commit added:
+
+| file | second parameter |
+|---|---|
+| `src/dungeon_recruitment.c:63` | `s32 direction` (new) |
+| `src/overlay_29_0231EDD8.c:46` | `s32 direction` (new) |
+| `src/overlay_29_02308FBC.c:109` | `enum direction_id direction` (pre-existing) |
+
+**The `s32` spelling has evidence behind it** (facts from
+`wip/TryHurl/STATUS.md` and `wip/TryRecruit/STATUS.md` §4): `enum direction_id`
+spans −1..8, so `-enum min` plus `-char signed` sizes it to one signed byte;
+passing `monster->action.direction` (a `u8`) through it makes MWCC emit `ldrsb`
+where the target has `ldrb` — a real two-row mismatch until it was fixed. And
+the callee settles it independently: at `asm/overlay_29_023047DC.s:208` it tests
+its second argument as a **full signed word** (`cmp r4,#0 / ldmltia`,
+`cmp r4,#8 / strltb`), which a one-byte enum parameter could not express.
+
+`overlay_29_02308FBC.c` only ever passes the constant `DIR_CURRENT`, so nothing
+there contradicts it; the declaration is simply narrower than the function is.
+**Left alone deliberately** — correcting it is a separate cross-file decision
+needing its own rebuild. A reviewer should decide whether to settle it now.
+
+## Evidence, group by group
+
+Only the load-bearing bits. Each group's `wip/` directory has the full census,
+the address-walk self-check output, and the scratch slugs.
+
+**Every group re-derives its own target on every run.** `tools/mktarget.py`
+walks 4 bytes per emitted instruction and per emitted `.word` from the entry
+address, asserts every `_0XXXXXXX:` label equals its own name parsed as hex, and
+asserts the walk closes **exactly** on the next symbol read out of the asm. In
+`OtherMonsterAbilityIsActive` that check caught a wrong census in the task brief
+(it said 34 instructions — that is the **JAPAN** arm; US/EU is 36) rather than
+letting it through. Region relationships are **asserted, not assumed**: where a
+block has no `#ifdef` arm, the harness asserts the three regions resolve
+byte-identically, so a future region fork fires the assertion instead of
+shipping US bytes under a JP label.
+
+### `TryHurl` (group 1)
+
+* 1908 bytes / 477 words compared **byte-identical** against `mwasmarm`'s output
+  in all three regions by `tools/objcheck.sh` — 415 words exactly, 62 relocated
+  words matched by relocation *type and target symbol name*. Its negative
+  control (JP source vs NA target) correctly reports exactly the five
+  region-dependent words.
+* **Region ids**: this file's JP offset is **−0x2BF**, *not* the −0x2C0 that
+  `src/move_orb_effects.c` uses for its own range — the values are generated
+  from each region's own resolved pool words, so they cannot drift from the
+  `.s`. Do not reuse the other file's macro.
+* The Mold Breaker guard is written as a **value-materialising ternary at the
+  call site**, `(user == NULL ? FALSE : (bool8)(GetEntityType(user) ==
+  ENTITY_MONSTER))`. *Fact*: the target materialises a 0/1 and only then tests it
+  (`moveq r0,#0 / beq` … `and r0,r0,#0xff` … `cmp r0,#0`), which a
+  short-circuiting `&&` chain does not produce. *Inference*: retail had a
+  `static inline` helper here — the repo has that exact helper twice as a real
+  ROM function (`IsMonster__0230A994`, `IsMonster__022F9720`). Under
+  `-inline on,noauto` MWCC **declined** to inline a two-`return` body and a
+  single-`return` ternary body, and the one form it did inline (`return x != NULL
+  && …`) short-circuits. So the ternary is "what could be made to match", not a
+  claim about retail's source.
+* New type `struct unk_022E9298` — four `s32` at +0/+4/+8/+0xc, *fact* read off
+  `asm/overlay_29_022E9298.s`. That the four are a rectangle is **inference**
+  from the call site's `DungeonRandRange(field_0x0, field_0x8)` /
+  `(field_0x4, field_0xc)` pairing, and is not claimed by the name.
+
+### `TryRecruit` (group 2)
+
+* JAPAN **genuinely diverges**: one fewer instruction, one more saved register,
+  4 fewer frame bytes, all message ids shifted −0x2C0, and `StrcpySimple` where
+  NA/EU call `StrncpySimpleNoPad` (the `#ifdef JAPAN` arm is in the landed file
+  at `src/dungeon_recruitment.c:348`). Rather than skip the address walk there,
+  the harness asserts the *shape* of the divergence: every JP label off by 0 or
+  exactly −4, the 0s a prefix and the −4s a suffix with exactly one transition
+  (at `_0230E2BC`), closing exactly 4 bytes short of NA.
+* `struct unk_0230E064` is declared in the `.c`, not a header — `TryRecruit` is
+  its only user today. **Flagged for later**: when `FillRecruitInfo`
+  (`0x022F9058`) lands it will want the same type, and the collision rule
+  (argument-named struct, no global, tie to the lower address) would make it
+  `struct unk_022F9058`.
+* Three further `common.h` refinements the evidence supports were **not** made,
+  and are carried as casts in the body instead, so the landing changes one
+  shared struct rather than three:
+  `*(struct moves *)member.moves = info->field_0x22;` (the target copies 34
+  bytes as one 17-halfword loop, which is a `struct moves` assignment);
+  `*(u16 *)&member.hidden_power_type = …` (0x5C is written `ldrh`/`strh`, i.e.
+  an `s16`, not two `u8`s); and `(s16)` casts on `member.id`/`member.iq`, which
+  are read with `ldrsh` though `common.h` declares them `u16`. **A reviewer may
+  prefer the header changes.** The `struct moves` one would mean `common.h`
+  including `dungeon_mode.h`, which is probably a cycle.
+
+### The seven in `overlay_29_0234B130` (group 3)
+
+* All seven matched, **21/21** (function × region). The gate is deliberately
+  per-function: the concatenated whole-file target bottoms out at score 35 as an
+  artefact — MWCC gives each function its own section so intra-file calls are
+  unresolved relocations in the candidate and resolved offsets in the target.
+  `tools/checksplit.py` closes that loop by asserting each function's rows in
+  the **whole-file** compile are instruction-for-instruction identical to its
+  rows in the **split** compile, in all three regions.
+* `bool8 ov29_0234B1A4(bool8)` is a **choice, not a deduction** — the asm shows
+  only `mov r4,r0` … `cmp r4,#0`, which `int`/`u32`/`bool8` all produce. Chosen
+  to match every call site (all pass 0) and the neighbouring
+  `ov29_022EFB20(bool8)`. Scores 0 either way. It replaces two K&R
+  `extern int ov29_0234B1A4();` declarations, which claimed a return value the
+  function does not have.
+* `extern int FullyCloseAlertBox(void);` is a **new, deliberately weak guess**
+  about a return type: the callee returns 0 or 1 with no `and r0,r0,#0xff` mask,
+  and the call site only does `cmp r0,#0`. When that function lands its header
+  should replace this line.
+
+### `TryActivateBadDreams` (group 4)
+
+* `tools/objcheck.sh`: 0x160 bytes in every region (exactly the 85 instructions
+  + 3 pool words the address walk derived independently); NA and EU objects
+  byte-identical; **JAPAN differs in exactly one word at offset 0x40**
+  (`ldr r8,[r0,#0xb78]` → `[r0,#0xad4]`), reproduced by the real toolchain from
+  the real `dungeon` layout — which is what confirms the JP context is genuinely
+  a JP context and not a US one wearing a label.
+* `ov10_022C4530` is left **unnamed on purpose**: its rodata neighbours are all
+  `*_CHANCE` percentages, but this one is consumed as a `damage` argument, so
+  what it means is not settled.
+
+### `OtherMonsterAbilityIsActive` (group 5)
+
+* *Fact*: the loop counter is re-narrowed to 16 bits every iteration
+  (`add / lsl #0x10 / asr #0x10`) and compared signed against `#0x14` — so `s16`,
+  not the tree's usual `s32` idiom for this loop. The negative control widens it
+  to `s32` and scores 280, which is what makes the 0 meaningful.
+* **JAPAN's entry address is written down nowhere in the tree.** It is *derived*
+  from three labels inside the JP arm, each independently implying
+  `addr − 4*index`, with all three required to agree before the walk runs. The
+  pool label outside the `#ifdef` spells a US address in every region and is
+  excluded from the JP assertion while still being counted for size.
+* The JP arm calls `DefenderAbilityIsActive__02301A0C` with **three** arguments
+  where NA/EU pass four. That arity split already exists in the tree
+  (`include/overlay_29_02301A60.h:8/10` declares it under `#ifdef JAPAN`, and
+  `src/dungeon_damage.c` already brackets its calls), so the landed `#ifdef` at
+  `src/dungeon_pokemon_attributes.c:50` follows an established shape rather than
+  inventing one.
+
+### `SetItemAcquired` (group 6) — the one with a live open question
+
+*Facts*: `ldrsh r0,[r0,#4]` pins the argument to `struct item *` and the field to
+`s16 id` at 0x4; `bl NormalizeTreasureBox / mov r4,r0` with no sign extension
+into r4, then `cmp r4,#0x3b` / `cmp r4,#0x41` on the raw r4, pins the local to a
+32-bit type; the divide/modulo idioms are MWCC's signed `/32` and `%32`, the
+same the already-landed `GetNbItemAcquired` emits.
+
+**The open question is the `(u8)` casts at the two adventure-log calls.** The
+call site demonstrably converts both arguments to an 8-bit unsigned type
+(`and r0,r0,#0xff` before `bl SetAdventureLogCompleted`, `and r0,r6,#0xff`
+before `bl GetAdventureLogCompleted`) while the tree declares both as taking
+`s32` — and those declarations are fixed by the landed, matching
+`src/main_0204FB9C.c`, so the header cannot be changed.
+
+The `LEDGER.md` records both alternatives as falsified rather than assumed:
+
+| spelling | result |
+|---|---|
+| no conversion at all (match the `s32` prototypes literally) | score **380**, both `and` instructions absent |
+| `u8 i;` loop counter (the "natural" way to get a byte) | score **510**, one instruction *longer* — MWCC masks a `u8` local at the **assignment**, the target masks at the **use** |
+| explicit `(u8)` casts at the call boundary | 380 → **40**, 0 structural rows |
+| …then declaring `all` before `i` inside the block | **0** |
+
+**Inference, not fact**: that the original TU had an 8-bit-parameter prototype of
+those two functions in scope. `& 0xFF` is byte-identical to the cast; the third
+possibility is a statement about the game's own headers that this function's
+bytes cannot distinguish.
+
+### `ov29_0230F9A4` + `TrySpawnEnemyItemDrop` (group 7)
+
+* Both `void` returns are **not guesses**: `ov29_0230F9A4`'s two early exits
+  leave `r0` holding whatever the last comparison produced (0, then a *non-zero*
+  `is_not_team_member`), which no `bool8` return could be;
+  `TrySpawnEnemyItemDrop`'s single epilogue never sets `r0`.
+* Three **provisional** callee prototypes (`TryGenerateUnownStoneDrop`,
+  `ov29_023460DC`, `ov29_0234908C`). One oddity worth a reviewer's eye when the
+  callee lands: **`TryGenerateUnownStoneDrop`'s third parameter is set by the
+  call site and never read by the callee's body.** A 2-parameter prototype would
+  not emit the `mov r2,r7`, so the parameter is in the signature and simply
+  unused. Its *type* is a guess.
+* The region identity assertion matters here specifically: the **third** function
+  in the same `.s` (`ov29_0230FB30`, still asm) *does* carry a `#ifdef JAPAN`
+  arm, so "this file has no region arms" is false even though neither landed
+  function has one.
+
+### `RetrieveFromItemList1` + `IsForbiddenFloor` (group 8)
+
+* *Fact*, working the condition codes through `cmp r0,#0xb4 / cmpcs r0,#0xd3 /
+  movcs r0,#0x55`: the emitted test really is `id >= 0xB4 && id >= 0xD3`, the
+  second bound making the first redundant. **Inference**: this reads like retail
+  source that meant `id <= DUNGEON_DOJO_0xD3`. That alternative was *measured*
+  rather than assumed — `<=` emits `movls` **plus** an extra `bcc`, one
+  instruction too many (score 710) — so the target is not a `<=` range check
+  rendered differently.
+* **`GetNbFloorsPlusOne`'s provisional return width is load-bearing, not
+  cosmetic**: `u8` gives the caller's `cmp r1,r0 / movcs` (unsigned), `s32` gives
+  `movge` and the match is gone (score 400). If someone decompiles it and finds
+  a wider return type, `RetrieveFromItemList1` has to be re-measured.
+* **`GetItemIdFromList`'s return type is genuinely ambiguous** between `s32` and
+  `s16`: both consistent pairings reach 0, and only the *mixed* pairing is
+  distinguishable (score 210). `s32`/`s32` shipped, per "guess weakly" — but the
+  two must move together if that callee later lands as `s16`.
+* Both falsified drafts are recorded: writing `pair->dungeon_id` twice emits two
+  `ldrb` (180 → 0 by binding it to a local declared *after* the two `RandIntSafe`
+  initialisers); and a head-test `for` loop gets **rotated** by MWCC, folding the
+  `i*2` scaling into both addressing modes, where the target is unrotated
+  (1145 → 0 with `for (i = 0; ; i++)` and an explicit `break`).
+
+### `sub_020251F0` + `StrncpySimpleNoPadSafe` (group 9)
+
+* **The source itself is region-dependent** here, which is unusual for this
+  branch: NA/EU `sub_020251F0` is a bare `bx lr` (1 instruction), JAPAN reads a
+  byte-pair table and returns a big-endian `u16` (9 instructions + 1 pool word),
+  at a *different entry address* that is written down nowhere in the tree and is
+  therefore derived from the block's own labels.
+* *Fact*: the return type is `u16` (the JP arm ends with the callee-side
+  `lsl #0x10 / lsr #0x10` narrowing). *Fact*: the parameter is a **narrow
+  unsigned** type — `s32` costs exactly those two shifts on NA/EU (score 200).
+  **`u8` and `u16` are indistinguishable by the bytes**; `u8` was chosen because
+  every asm call site narrows to a byte first and the JP arm indexes a 256-entry
+  table. A reviewer who prefers `u16` can take it for free.
+* *Fact*: the NA/EU `c < 0x100` guard assembles as `cmp r3,#0x100 / strlob /
+  strhsb` — **unsigned** conditions, which a `u8`/`u16` local (promoted to `int`)
+  could not produce; `u32 c = *src++;` is what does. The compare is dead at
+  runtime and MWCC does not fold it. **That dead arm is in the retail bytes; it
+  was not introduced by this candidate.**
+* New JAPAN-only type `struct unk_020B112C` and `extern const struct
+  unk_020B112C _020B112C_JP`, both inside `#ifdef JAPAN` in the `.c`. *Fact*: the
+  definition in `asm/main_rodata_020A2808.s:11980` is two pointer words, size 8
+  read off the definition. **Inference**: that the two words are *one aggregate*
+  rather than two symbols — the `.s` emits a single `.global` at +0x0 and every
+  reader loads the second word as `[base,#4]`. `const` was measured byte-neutral.
+* The `LEDGER.md` records twelve falsified expression shapes for the JP
+  addressing, with the generalisable finding: hoisting the **row** into a local
+  (`const u8 *row = table[i];`) makes MWCC CSE the *address*, while indexing the
+  table twice makes it CSE the *index*. Everything that kept the double index
+  plateaued at score 35 (structurally correct, two registers transposed), and
+  reversing the `+` operands actively regressed it to 45.
+
+### `sub_020261F4`, `sub_02026204`, `DrawTextInWindow` (group 10)
+
+* `tools/realbuild.sh` compiled the **post-landing** `src/main_02026174.c` with
+  the real `mwccarm` and the real flags (including the `-W … -W error` set a
+  scratch does not carry) in all three regions and compared each function
+  against the assembled target **byte for byte, relocations included**:
+  16 / 16 / 84 bytes, IDENTICAL, 0 diagnostics, ×3 regions.
+* **Judgement call, flagged so it can be overruled**: `sub_020261F4` is declared
+  with **two** parameters, not one, because its callee `sub_02020D7C` takes two
+  and the asm caller passes both (`asm/main_0202D0EC.s:2263-2266`). That is *not*
+  the style of the eight wrappers already in the file, which are declared with
+  one parameter even where their callee takes more. Byte-neutral either way
+  (measured at 0 for 0, 1 and 2 forwarded arguments).
+* New placeholder `struct unk_02020B60` (two `s32`) in `include/main_02026174.h`
+  — no `vec2`/`point` existed to reuse (grepped). Named for the function that
+  takes it, members are offsets, which are facts.
+
+### `sub_0202B568` + `GetSimpleMenuResult__0202B870` (group 11)
+
+* `tools/wcheck.sh` — the real flags on the *merged* file — **found a real defect
+  six score-0 scratches were blind to**: under `-W all … -W error` a bare
+  definition without a prototype is fatal, so both functions need their header
+  line. `extract_function.py` supplies it, but a hand-merge of the second would
+  have broken the build silently.
+* Falsified and recorded: the obvious guard-clause shape
+  (`if (…== 0) return 0;` first) scores **500** — MWCC *if-converts* the short
+  early return instead of branching to it. Inverting so the long body sits inside
+  the `if` and `return 0` falls through to the end gives 0. This is the second
+  confirmation of an entry already in `docs/MATCHING_TIPS.md`, on a slightly
+  different symptom (branch to a trailing block, rather than a predicated tail).
+* **No shared-type change, deliberately**: `unk_0202AAA8::field_0x198` stays
+  `void *` and is narrowed to `struct unk_0202A75C *` in a local. Typing the
+  member directly would be better documentation but touches two other files and
+  was not needed. `struct unk_0202A75C` was **not invented** — it already exists
+  in `include/main_0202A66C.h`, where `CreateParentMenuFromStringIds` builds
+  exactly this `0x104`-stride array.
+
+### `sub_020022C4`, `sub_020022D0`, `RandIntSafe` (group 12)
+
+* No shared-type change, no new type, no new name. `RandIntSafe` is the name the
+  tree already carries; the local `entropy` is the name `src/dg_random.c` already
+  uses for the same value in the sibling `DungeonRandInt`.
+* `tools/landing.sh` applied **every** edit in the landing checklist — caller
+  files included — in a throwaway clone and compiled all three affected TUs in
+  all three regions. Its negative control removes the new `#include` while
+  keeping the `extern` deleted, and `src/main_0203D538.c` then fails with
+  "function has no prototype", so the checklist's dependency between the two
+  edits is measured rather than assumed.
+* `RandIntSafe` did not match first try, and the fourteen-variant sweep is the
+  informative part: **every form that spells the truncation as a `u16` cast or a
+  `u16` local scores 210 — the truncation vanishes entirely**, because with
+  `u16 Rand16Bit();` in scope MWCC already knows the value is 16 bits and folds
+  the cast to nothing. The value must be widened into an `s32` and narrowed
+  *there*; compounding the multiply (`e *= n;` as its own statement) is what puts
+  the narrowing in the target's register (`lsr r1,r0,#0x10`) rather than the
+  scratch one (score 15 → 0).
+* The `0x5D588B65` multiplier in `sub_020022D0` is left a **bare literal** even
+  though `src/dg_random.c` spells the same constant `DUNGEON_PRNG_LCG_MULTIPLIER`
+  — introducing a shared macro would be a naming decision.
+
+## Naming
+
+**Nothing was identified.** Every function keeps the name the tree already had —
+`sub_020022C4`, `sub_020022D0`, `sub_020251F0`, `sub_020261F4`, `sub_02026204`,
+`sub_0202B568`, `ov29_0234B130`, `ov29_0234B1A4`, `ov29_0230F9A4` stay as
+placeholders, and the named ones (`TryHurl`, `TryRecruit`, `SetItemAcquired`, …)
+were already named in the tree, not imported from pmdsky-debug for this commit.
+
+Four new placeholder types, all in the `unk_<FUNC ADDR>` / `field_0x<off>` form
+CLAUDE.md prescribes, none with a global to name them after:
+
+| type | where | what it is |
+|---|---|---|
+| `struct unk_022E9298` | `src/overlay_29_0231EDD8.c` | four `s32`, `ov29_022E9298`'s 2nd argument |
+| `struct unk_0230E064` | `src/dungeon_recruitment.c` | `TryRecruit`'s recruit-info argument |
+| `struct unk_020B112C` | `src/main_020251AC.c`, JAPAN only | two rodata pointer words |
+| `struct unk_02020B60` | `include/main_02026174.h` | two `s32`, an x/y pair passed to `sub_02020B60` |
+
+Data symbols keep their `_0<addr>` / `ov10_…` placeholders — `ov10_022C4530` and
+`ov10_022C4650` were explicitly **not** named, even though their rodata
+neighbours are all `*_CHANCE`, because one of them is consumed as a `damage`
+argument and the meaning is not settled.
+
+Raw literals left raw rather than given a name that would assert a meaning:
+`0x800` (a `terrain_flags` bit), `0x212` (a sound id), `0x3B`/`0x41`/`0x21`/`0x15`
+(`SetItemAcquired`'s item-id band and progress flag), `100` (`IsForbiddenFloor`'s
+dungeon-**group** sentinel — the table's own trailing row is `0x64, 0xFF`, which
+corroborates it, but no in-tree enumerator was assumed), and `0x5D588B65`.
+
+## What verification was and was not done
+
+**Done**, per the wip directories: 26 functions × 3 regions at decomp.me score 0
+on the local instance; per-group real-toolchain checks with the build's actual
+flags and warning set (`wcheck.sh` / `warncheck.sh` / `lint.sh` /
+`realbuild.sh`), several of which compare the emitted object against the
+assembled target **byte for byte with relocations**; caller byte-neutrality
+measured directly (`callercheck.*` / `callers.sh`) with negative controls that
+fire; struct offsets compiled as assertions with inverted negative controls; and
+**matching builds of all three ROMs**, which is the only thing that actually
+settles the commit.
+
+**Not done, and worth saying plainly**: no one re-ran any of it while writing
+this note. The `-W error` lints compile one TU each and do not link or checksum.
+And a per-function score of 0 says nothing about a *declaration* that disagrees
+in another translation unit — which is the entire reason the declaration section
+above exists.
+
+Each wip directory also freezes the pre-landing `.s` (with its sha1) so the
+harness stays runnable after the landing deletes the file. The falsified
+candidates are in `cand/` and `var/` per group; three groups have a `LEDGER.md`
+(`SetItemAcquired`, `main_020251F0_head`, `main_0202B568_head`) and the rest
+carry their dead ends in a "what was falsified" section of `STATUS.md`. Four
+groups (`overlay_29_0234B130_all`, `OtherMonsterAbilityIsActive`,
+`main_020261F4_head`, `overlay_29_0230F9A4_head`) record that **nothing** was
+falsified because the first candidate matched.
+
+## Open questions for a reviewer
+
+1. **`alert_box_info::field_0xc92` `u8`→`u16` is a fourth shared-type change the
+   commit message does not list**, and it moves four named `u8` members by one
+   byte each. Nothing in the tree reads them today, so the builds cannot tell —
+   verify the offsets table above against the asm rather than against this note.
+2. **`DrawTextInWindow`'s first parameter.** The tree now says `s32 window_id`,
+   but `overlay_25_init.c` and `overlay_31_02383880.c` reach it through a `(s32)`
+   cast on a pointer, and `overlay_13_0238BDA8.c` is deliberately left declaring
+   it `s8`. Three different things cannot all be right about one parameter.
+3. **`ChangeMonsterAnimationToIdle` now has three declarations, two `s32` and one
+   `enum direction_id`.** The evidence favours `s32`; the `enum` one was left
+   alone rather than settled. Settle it, or record why not.
+4. **`SetItemAcquired`'s `(u8)` casts.** Whether retail wrote a cast, a
+   `& 0xFF`, or had an 8-bit-parameter prototype of the two adventure-log
+   functions in scope is not decidable from this function's bytes, and the
+   header cannot be changed because `src/main_0204FB9C.c` is landed and matching
+   against `s32`.
+5. **`GetItemIdFromList` / `RetrieveFromItemList1` must move together.** `s32`
+   and `s16` both work as a *pair*; only the mixed pairing is distinguishable.
+6. **`GetNbFloorsPlusOne`'s `u8` return is load-bearing.** If it lands with a
+   wider return type, `RetrieveFromItemList1` needs re-measuring.
+7. **Provisional prototypes that should be deleted as their callees land**, not
+   left to rot: `NormalizeTreasureBox`, `ShouldTreatMonsterAsAlly`,
+   `FullyCloseAlertBox`, `TryGenerateUnownStoneDrop`, `ov29_023460DC`,
+   `ov29_0234908C`, `sub_02020B60`, `sub_02020D7C`, `AnalyzeText`,
+   `sub_02025E84`, `CalcDamageFixedNoCategory`, `ov29_022E9298` and the rest of
+   the `extern` blocks in the new `.c` files. Their **argument types are
+   inference** throughout.
+8. **`TryRecruit` carries three casts where `common.h` refinements would be
+   better** (`struct moves` at 0x1C, an `s16` at 0x5C, `s16` reads of `id`/`iq`).
+   Deferred to keep the commit to one shared-struct change; a reviewer may want
+   them made.
+9. **`struct unk_0230E064` should probably become `struct unk_022F9058`** when
+   `FillRecruitInfo` lands, per the collision rule.
+10. **`TryGenerateUnownStoneDrop`'s third parameter is passed and never read.**
+    Odd enough to want a second look when that function is decompiled.
+11. **The commit message's counts are low**: 35 declarations / 21 files against
+    37 / 23 in the diff, and "five" `GetSimpleMenuResult__0202B870` declarations
+    against six. Cosmetic, but a reviewer counting along will notice.
+12. **`sub_020261F4`'s two-parameter declaration** breaks the style of the eight
+    one-parameter wrappers beside it. Byte-neutral; overrule freely.
+13. **`sub_020251F0`'s parameter is `u8` or `u16`** — the bytes prove only
+    "narrow unsigned". The JP table's spelling (`u8 (*)[2]` vs a two-`u8` struct
+    vs a flat `u8 *`) is likewise undetermined; three other JP-only readers of
+    the same table are still asm and may narrow it.
+14. **`bool8 ov29_0234B1A4(bool8)`'s parameter type is a choice**, as is
+    `LogMessageWithPopupCheckUser`'s `const char *`. Both score 0 either way.

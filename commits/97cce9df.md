@@ -1,0 +1,429 @@
+# `97cce9df` — Decompile 13 more callees; all merge at a file boundary
+
+| | |
+|---|---|
+| **Commit** | `97cce9df` (as of writing — renamed if amended or rebased) |
+| **Branch** | `decomp-continued`, on top of [`809e9377`](809e9377.md) |
+| **Verified** | US ROM: `build/pmdsky.us/pmdsky.us.nds: OK`. **Only the US ROM was built** — see *How this was verified* below |
+
+> **Unverified AI-authored reasoning.** Not part of the decompilation, never
+> merged, not authoritative. The PR diff and the matching build are the sources
+> of truth — see [the README](../README.md). Claims are labelled **fact** (read
+> off the asm/data, or from an existing in-tree header) or **inference**.
+
+---
+
+The second batch of the same shape as [`809e9377`](809e9377.md): small callees of
+the large functions landed earlier on this branch, taken so that their provisional
+call-site prototypes can be replaced by real headers. Thirteen functions, twelve
+source files, **no new struct, no new enum, no new data-symbol name, and no edit
+to any shared type**.
+
+## The thirteen
+
+All instruction counts are **fact**, counted off the per-region target blocks in
+`wip/<name>/targets/`. "head"/"tail" is the function's position in its `.s`, which
+is what decides the landing shape.
+
+| function | address | insn + pool | from | position | lands in |
+|---|---|---|---|---|---|
+| `ClampedLn` | `0x020021F4` | 11 + 2 | `asm/main_02001D68.s` | tail | `src/main_0200224C.c` |
+| `sub_02002228` | `0x02002228` | 1 + 0 | `asm/main_02001D68.s` | tail | `src/main_0200224C.c` |
+| `RemoveItemNoHoleCheck` | `0x0200F718` | 31 + 1 | `asm/main_0200F390.s` | tail | `src/main_0200F798.c` |
+| `ApplyGummiBoostsToTeamMember` | `0x02011554` | 11 + 0 | `asm/main_02011554.s` | head | `src/main_020114F8.c` |
+| `CountAndPopulateValidMissionTableMonsters` | `0x0205DFAC` | 28 + 0 | `asm/main_0205DFAC.s` | **whole file** | `src/main_0205D11C.c` |
+| `CanMonsterBeUsedForMission` | `0x02062A68` | 26 + 0 | `asm/main_02062A68.s` | head | `src/main_02062A58.c` |
+| `ov10_022BCDF4` | `0x022BCDF4` | 20 + 0 | `asm/overlay_10_022BCDF4.s` | head | `src/overlay_10_022BCC60.c` |
+| `PlayEffectAnimationEntityStandard` | `0x022E42E8` | 20 + 0 | `asm/overlay_29_022E41F0.s` | tail | `src/overlay_29_022E4338.c` |
+| `MusicTableIdxToMusicId` | `0x022EAD00` | 23 + 3 | `asm/overlay_29_022EAD00.s` | head | `src/overlay_29_022EAC7C.c` |
+| `ov29_022ECD84` | `0x022ECD84` | 14 + 1 | `asm/overlay_29_022EC85C.s` | tail | `src/overlay_29_022ECDC0.c` |
+| `ov29_022EFB20` | `0x022EFB20` | 23 + 2 | `asm/overlay_29_022EFB20.s` | head | `src/dungeon_logic_6.c` |
+| `ov29_022F0534` | `0x022F0534` | 22 + 1 | `asm/overlay_29_022EFB20.s` | tail | `src/overlay_29_022F0590.c` |
+| `AftermathCheck` | `0x0230AA0C` | 30 NA/EU, 29 JP + 2 | `asm/overlay_29_0230AA0C.s` | head | `src/overlay_29_0230A9DC.c` |
+
+Two of them come out of the **same** `.s`, one from each end:
+`asm/overlay_29_022EFB20.s` loses its head function to the preceding
+`src/dungeon_logic_6.o` and its tail function to the following
+`src/overlay_29_022F0590.o`, and what is left is renamed
+`asm/overlay_29_022EFB84.s`. Its `.inc` drops from 11 `.public` lines to 3 —
+fact, `asm/include/overlay_29_022EFB84.inc`.
+
+## Landing shape — twelve merges, zero splits
+
+**Fact**, and checkable from `main.lsf` alone: the diff changes seven lines there
+and adds none. Six are renames of an asm object whose address range shrank
+(`asm/main_02011554.o` → `asm/main_02011580.o`, and similarly for
+`main_02062A68`, `overlay_10_022BCDF4`, `overlay_29_022EAD00`,
+`overlay_29_022EFB20`, `overlay_29_0230AA0C`); one is a deletion
+(`asm/main_0205DFAC.o` — that `.s` held exactly one function, so consuming it
+empties the object). A split would have *added* a line and a new `src/` object;
+none did.
+
+Each merge target is the adjacent object in `main.lsf`, verified line by line —
+e.g. `asm/main_02001D68.o` at line 24 is immediately followed by
+`src/main_0200224C.o` at 25, so the two tail functions merge forwards; and
+`src/main_020114F8.o` immediately precedes `asm/main_02011554.o`, so that head
+function merges backwards. **Fact.**
+
+`sub_02002228` was taken only because it stands between `ClampedLn` and the end of
+`asm/main_02001D68.s`: `extract_function.py` merges a head or a tail, so
+`ClampedLn` could not be reached without also consuming the single instruction
+after it. That is **the commit message's own account**, and it is consistent with
+the addresses (`ClampedLn` ends at `0x02002228`, `sub_02002228` ends at
+`0x0200222C`).
+
+## How this was verified
+
+The commit message states each function reached **score 0 against its
+NORTH_AMERICA, EUROPE and JAPAN target** before landing, with the address walk
+closing exactly in each region, and that the US ROM then built `OK`.
+
+Two caveats a reviewer should hold on to:
+
+- **Only the US ROM was built.** Unlike [`f8eaf87f`](f8eaf87f.md), which records
+  all three ROMs green, the EU and JP evidence here is *per-function, at the
+  scratch level* — the local decomp.me harness compiling each function against a
+  region-specific target — not a full `make eu` / `make jp`. A per-function score
+  0 in every region is strong, but it is not the same artefact.
+- **Seven of the thirteen have a transcribed ledger; six do not.**
+  `wip/<name>/LEDGER.md` exists for `sub_02002228`, `ClampedLn`,
+  `ApplyGummiBoostsToTeamMember`, `RemoveItemNoHoleCheck`,
+  `CanMonsterBeUsedForMission`, `CountAndPopulateValidMissionTableMonsters` and
+  `ov10_022BCDF4`, with the scores quoted verbatim. For
+  `PlayEffectAnimationEntityStandard`, `MusicTableIdxToMusicId`, `ov29_022ECD84`,
+  `ov29_022F0534`, `AftermathCheck` and `ov29_022EFB20` there is **no ledger** —
+  only the harness, the per-region targets and the final `match.c`. **The
+  intermediate attempts for those six are not recorded anywhere, and this note
+  does not reconstruct them.** For five of the six, `cand/draft.c` is
+  byte-identical to `match.c`, which is consistent with a first-attempt match but
+  does not prove one.
+
+Every harness re-derives its target per region and asserts the address walk closes
+(`tools/mktarget.py`, per the ledgers that quote its output) rather than trusting a
+cached block.
+
+## What the matches turned on (ledger-backed)
+
+These are transcribed from `wip/<name>/LEDGER.md`; the scores are measurements
+someone recorded, not estimates.
+
+| function | the lever | falsified alternative |
+|---|---|---|
+| `ClampedLn` | assign `out->lower` **before** `out->upper`, so the constant 0 lands in the lower-numbered register and MWCC folds the pair into `stmia` | `upper` first: 525. Same with the table value hoisted to a local: 525. Filling a local struct and copying: 730 |
+| `RemoveItemNoHoleCheck` | nest the success path and sink a single `return 0` to the bottom, reproducing one shared epilogue | guard-clause / early-`return 0` spelling: 815, +2 rows (MWCC emits `moveq r0,#0 / popeq` in place) |
+| `CanMonsterBeUsedForMission` | `if (!f(m)) return FALSE; return TRUE;` rather than `return f(m) != 0;` | the `!= 0` form: 160 — an `int` result assigned to a `bool8` return adds a trailing `and r0, r0, #0xff` the target lacks |
+| `CountAndPopulateValidMissionTableMonsters` | the loop temp **declared at function scope, position 5 of 7** | all 720 declaration-order permutations with the temp declared inside the loop bottom out at 40 (`tools/s2.py`, 203 s). Adjusting the pointer outside the loop instead of indexing `base[off + i]`: the `add` never leaves `0x28`. `off` read without a `(u16)` cast: 235–260, the load becomes `ldrsh` |
+| `ApplyGummiBoostsToTeamMember` | nothing — matched first attempt | — |
+| `ov10_022BCDF4` | nothing — matched first attempt | — |
+| `sub_02002228` | nothing — one `bx lr` | — |
+
+`CountAndPopulateValidMissionTableMonsters` is the only one here whose match
+depends on **declaration order**: its ledger records the target register map
+(`base=r4 i=r5 n=r6 k=r7 off/v=r8 buf=r9`) and the observation that `off` and `v`
+are coalesced into one physical register. That is a fragile-looking match, and the
+exhaustive sweep is the reason to believe it rather than a lucky spelling.
+
+The `(u16)` cast on `spec->field_0x4` is **not** decoration — the ledger measures
+its absence at 235–260 — and it is also the spelling the file already uses for the
+same field twice (`src/main_0205D11C.c:359,484`, `(u16)tmpl->field_0x2[2].field_0x4`).
+**Fact**, both halves.
+
+## Structural facts worth a reviewer's eye
+
+**`RemoveItemNoHoleCheck` confirms an inference made two commits earlier.**
+[`f8eaf87f`](f8eaf87f.md) corrected this function's declaration from
+`u32 (struct item *)` to `u32 (s16 index)` purely by reading `smulbb r1, r0, r1`
+with `r1 = 6` in its asm. The body now landed uses that index against
+`BAG_ITEMS_PTR_MIRROR->bag_items->bag_items[index]`, and the target's
+`mov r1,#0x32` is `INVENTORY_SIZE` = 50 (**fact**, `include/item.h:1602`). The
+earlier inference held.
+
+**The `bool8 exists` local in `RemoveItemNoHoleCheck` is doing work.** The target
+emits `tst r0,#1 / movne r0,#1 / moveq r0,#0 / tst r0,#0xff / beq` — a normalise
+to 0/1 followed by a narrowing re-test, which is what a `bool8` round-trip
+produces, not what a bare `if (item->flags & ITEM_FLAG_EXISTS)` would
+(**fact** about the emitted instructions; the reading is **inference**).
+**Whether the bare form also matches was not measured** — the ledger records only
+the guard-clause experiment.
+
+**`AftermathCheck` reuses one pool constant twice.** `ldrne ip, =0x0000026F` is
+compared against `damage_source` and then, unchanged, stored as the sixth argument
+(`str ip, [sp, #4]`). `0x26F` = 623 = `DAMAGE_SOURCE_EXPLOSION`
+(**fact**, `include/enums.h:3279`), and `mov r2,#0x76` = 118 = `ABILITY_AFTERMATH`
+(**fact**, `include/enums.h:769`). Writing the enumerator in both places is what
+lets MWCC share the word; two different spellings of the same value would not.
+
+**`ov29_022EFB20` writes its two array slots in descending index order** —
+`mov r0,#1 / bl / strh r0,[r1,#2]` then `mov r0,#0 / bl / strh r0,[r1]` (**fact**),
+so `ov29_0237C9A0[1]` is assigned before `[0]`. Source order, not a scheduling
+artefact.
+
+**`MusicTableIdxToMusicId`'s two casts are both codegen-load-bearing** (**fact**,
+read off the target):
+- `(u16)(music & 0x7FFF)` as the row index produces `mov r1, r1, lsl #0x10` then
+  `add r0, r3, r1, lsr #13` — a 16-bit unsigned truncation fused with the ×8 row
+  stride. Without the narrowing there is no `lsl #16`.
+- the non-random return emits `moveq r0, r0, lsl #0x10 / moveq r0, r0, lsr #0x10`,
+  i.e. the result is zero-extended from 16 bits. That is what a 2-byte **unsigned**
+  return type does.
+- `bl _s32_div_f` for `% 170` means the modulus operand is **signed** — so the
+  parameter really is `s32`.
+
+**Both music tables measure exactly as declared** — the strongest single piece of
+evidence in this commit, and pure arithmetic:
+
+| symbol | measured size | declared | check |
+|---|---|---|---|
+| `RANDOM_MUSIC_ID_TABLE` | **240 bytes** (gap to `.global SHOP_ITEM_CHANCES`) | `enum music_id[30][4]` | 30 × 4 × 2 = 240 ✓ |
+| `MUSIC_ID_TABLE` | **340 bytes** (gap to end of `asm/overlay_10_rodata_022C593C.s`) | `u16[170]` | 170 × 2 = 340 ✓, and 170 = `0xAA`, the modulus in the target ✓ |
+
+**Fact**, both measured by walking `.byte` counts between `.global` labels in
+`asm/overlay_10_rodata_022C593C.s`.
+
+**`ov29_0237C974[40]` is measured, not guessed.** `asm/overlay_29_bss_02353860.s`
+reserves `.space 0x28` between `.global ov29_0237C974` and `.global ov29_0237C99C`
+— exactly 40 bytes (**fact**). `ov29_0237C9A0` likewise reserves `.space 0x4`,
+and the target `strh`s into both halves, consistent with the `s16[2]` typing
+(**fact** for the size and the stores; the typing is **inference**).
+
+## Regions
+
+**`AftermathCheck` is the only function here that needs an `#if` in the C.** The JP
+target is one instruction shorter — it lacks the `mov r3, #1` that supplies
+`DefenderAbilityIsActive__0230A940`'s fourth argument (**fact**,
+`diff wip/AftermathCheck/targets/NORTH_AMERICA.s .../JAPAN.s` is exactly that one
+line). The `#ifdef JAPAN` arity split is **not new**: `include/overlay_29_0230A994.h`
+already declares the function both ways, and `src/dungeon_damage.c` and
+`src/overlay_29_02308FBC.c` already carry a dozen call sites written in this exact
+shape. The landed code copies the established convention.
+
+**`ov29_022F0534`'s region difference needs no `#if`, and the arithmetic closes.**
+Its JP target loads `[r0, #0xad4]` where NA/EU load `[r0, #0xb78]` (**fact**) — a
+delta of `0xA4` = 164 bytes in the offset of `dungeon::active_monster_ptrs`. That
+is absorbed entirely by conditionals already in the tree:
+
+- `include/dungeon.h:1215` `#ifndef JAPAN` drops `u32 monster_unique_id[20]` +
+  `u32 unique_id_index` = **84 bytes**;
+- `struct monster` (`include/dungeon_mode.h:361,392`) drops `bool8 in_action` and
+  three `u8` fields = **4 bytes**, and `struct dungeon` embeds
+  `struct monster monsters[20]` at `0x7F4` — **80 bytes**.
+
+84 + 80 = **164 = 0xA4**. **Fact**, and it closes exactly. The C is region-blind;
+the type system carries it.
+
+The remaining eleven blocks are byte-identical across all three regions
+(**fact**, `diff` over the per-region target files in `wip/`).
+
+## Declarations: eleven removed, and which of them were actually wrong
+
+The diff deletes **eleven** call-site declarations (the commit message says ten; I
+counted eleven in the diff, listed below — a reviewer may want to reconcile that,
+it changes nothing about the code). Nine are covered by a newly added `#include`;
+the two in `src/overlay_11_02307334.c` needed none, because that file already
+included `main_020114F8.h` and `overlay_10_022BCC60.h` (**fact**, lines 19 and 21).
+
+**Three were genuinely wrong**, all in `src/overlay_29_02308FBC.c` and all the same
+shape — unprototyped, wrong return type:
+
+```c
+extern int ov29_022ECD84();   // really void ov29_022ECD84(struct entity *)
+extern int ov29_022EFB20();   // really void ov29_022EFB20(bool8)
+extern int ov29_022F0534();   // really void ov29_022F0534(bool8)
+```
+
+**A build could never have caught these.** Each call discards the return value and
+passes its single argument in `r0` either way, so the disagreement is invisible to
+codegen; and the declarations lived in a different translation unit from any
+definition, so no compiler ever saw both. They became hard errors only once the
+functions had real headers for `overlay_29_02308FBC.c` to include — which is the
+argument for landing headers rather than leaving call-site externs.
+
+**Eight agreed with the real signature and were adopted rather than corrected.**
+That matters: a declaration that predates the decompilation is *evidence*, not
+noise. In particular `sub_02002228`'s signature is **not derivable from its
+assembly at all** — one `bx lr` with no register traffic is what MWCC emits for an
+empty body under any signature, so the return type and parameter list are invisible
+(**fact**, and the ledger says so explicitly). `void sub_02002228(u32)` is taken
+verbatim from `src/main_02000C6C.c:7`, the sole caller, precisely so nothing
+changes. The other seven —
+`ApplyGummiBoostsToTeamMember`, `ov10_022BCDF4`,
+`CountAndPopulateValidMissionTableMonsters`, `ClampedLn`, `MusicTableIdxToMusicId`,
+`AftermathCheck`, `PlayEffectAnimationEntityStandard` — were promoted into headers
+unchanged.
+
+## Three implicit-conversion repairs, and one cast kept
+
+All three are repairs to declarations **this project owns** (none of the three
+symbols had a declaration anywhere in the tree before), which is why correcting the
+declaration is better than papering over it with a cast at the use.
+
+| symbol | first draft | landed | why |
+|---|---|---|---|
+| `RANDOM_MUSIC_ID_TABLE` | `u16[][4]` | `enum music_id[30][4]` | `-enum min` sizes `enum music_id` to 2 bytes, so the layout is identical and no cast is needed on the return |
+| `GetBaseForm` | `enum monster_id (enum monster_id)` | `s16 (s16)` | matches the tree's own `FemaleToMaleForm(s16)` (`include/main_02054BE0.h:10`) and `HasMonsterBeenAttackedInDungeons(s16)` (`include/main_0204D188.h:18`) for the same ids |
+| `IsMonsterMissionAllowed` | `bool8 (enum monster_id)` | `bool8 (s16)` | same |
+
+The `enum music_id` sizing is **checkable**: the enum spans 0 …
+`MUSIC_NONE_0x3E7 = 999` with **no negative enumerator** (**fact**, grepped across
+`include/enums.h:2512-2716`), so under `-enum min` it is an unsigned 16-bit type —
+which is exactly the `ldrh` the target uses for the table load and the
+`lsl #16 / lsr #16` it uses for the return.
+
+The `GetBaseForm` / `IsMonsterMissionAllowed` change is byte-neutral and the ledger
+says so from measurement: `enum monster_id` (min `-1`, max ~1154 → signed short
+under `-enum min`) and `s16` are **codegen-identical here**, measured at score 0
+both ways. The choice is about honesty of the declaration, not about bytes.
+
+**The one cast kept is deliberate and correct.** `MUSIC_ID_TABLE` stays `u16`
+because its entries carry a `0x8000` flag bit that the function tests and masks off
+(**fact** — `tst r4, #0x8000` and `and` with `0x7FFF` in the target, and the data
+shows entries like `0x8002`, `0x8014` in
+`asm/overlay_10_rodata_022C593C.s`). An entry with that bit set is not a valid
+`music_id` enumerator, so typing the table as the enum would assert something
+false; the `(enum music_id)` cast sits on the *masked* value instead.
+
+## Shared types: none
+
+**No struct or enum in `include/` changed shape.** Every `include/` file the commit
+touches is a per-object generated header, and every edit to one is an added
+prototype. Specifically:
+
+- `struct unk_0205DFAC` (`u16 field_0x0; u16 field_0x2; s16 field_0x4;`) was
+  already in `include/main_0205D11C.h` from earlier on this branch — unchanged;
+- `struct unk_0202AAA8`'s `field_0xF8` / `field_0x19C` / `field_0x1A0` /
+  `field_0x1A1`, which `ov10_022BCDF4` writes, already existed in
+  `include/main_0202AAA8.h` — unchanged;
+- `struct team_member`, `struct entity`, `struct dungeon`, `struct item`,
+  `struct fixed_point_64` — all used as they stand.
+
+**Fact**, from the diff's file list and from grepping each type.
+
+Two **include-graph** edges are new, which is not a layout change but does widen
+what other translation units see:
+
+- `include/main_0200224C.h` now `#include "main_02001BB4.h"` (which pulls
+  `util.h`, where `struct fixed_point_64` is defined);
+- `include/overlay_29_022EAC7C.h` now `#include "dungeon.h"` (for `enum music_id`).
+
+Both exist because `extract_function.py` emits a header that *names* a type without
+including its definition, and since the `.c` includes its own header first, the
+prototype builds its own file-scoped tag and the later definition reads as a
+redeclaration with a different type. Same failure mode, and same fix, as
+`include/main_020114F8.h` in [`809e9377`](809e9377.md).
+
+## Naming: five placeholders kept, no new names coined
+
+Eight of the thirteen already carried real names on their `arm_func_start` labels
+(from a pmdsky-debug sync) and keep them verbatim. Five keep their placeholders —
+`sub_02002228`, `ov10_022BCDF4`, `ov29_022ECD84`, `ov29_022F0534`,
+`ov29_022EFB20` — in the `.c`, the header and `main.lsf`. Nothing was renamed and
+no data symbol was identified; this commit is decompilation, not identification.
+
+Two parameter names are worth calling out because they do assert meaning:
+
+- `void ov29_022F0534(bool8 freeze)` — the name is **inference** from the body
+  choosing between `FreezeAnim` and `UnfreezeAnim`, and it is borrowed from the
+  sibling `ov29_022F05B4(struct entity*, struct entity*, bool8 freeze)` already in
+  the same header, not coined fresh. Reasonable, but still a claim.
+- `void ov29_022EFB20(bool8 param_1)` keeps the neutral placeholder, which is the
+  more conservative of the two choices made in the same commit. The inconsistency
+  is worth a reviewer's opinion.
+
+## New warts a reviewer should ask to have cleaned up
+
+These all build — C permits repeated identical declarations, so the compiler cannot
+object and the ROM still matches — but they are noise, and every one is **fact**,
+readable in the landed files:
+
+- **`include/main_0200F798.h` now declares `RemoveItemNoHoleCheck` twice**, lines 6
+  and 8, identically. `extract_function.py` added a prototype above the one
+  [`f8eaf87f`](f8eaf87f.md) had already corrected.
+- **`include/main_02062A58.h` now declares `CanMonsterBeUsedForMission` twice**,
+  lines 6 and 9, identically.
+- **`src/overlay_29_022E4338.c` declares `GetEffectAnimationWanOffset` and
+  `PlayEffectAnimationEntity` twice**, once above the new function and once below
+  it — the new body was inserted between the file's include and its original
+  extern block, splitting them.
+- **`src/overlay_29_022F0590.c` declares `FreezeAnim` and `UnfreezeAnim` twice**,
+  and separately re-declares `EntityIsValid__022F0590`, which its own header
+  already declares.
+- **`src/dungeon_logic_6.c` adds a fourth unprototyped extern**,
+  `extern int ov29_0234B1A4();` — the same shape this commit deleted three of. It
+  is copied verbatim from `src/overlay_29_02308FBC.c:150`, so it is not a novel
+  invention, but it is the pattern that caused the conflicts this commit had to
+  resolve.
+- **`ov29_022F0534`'s loop bound is the literal `20`** where
+  `include/dungeon.h:10` defines `DUNGEON_MAX_POKEMON 20` and the array it walks is
+  declared with that macro.
+- **`src/main_02062A58.c` gains `#include "enums.h"`** which the landed body does
+  not obviously need — it uses only `s16` and `bool8`. Worth checking rather than
+  trusting this reading.
+
+## Pre-existing disagreements this commit did not create and did not fix
+
+Both are cross-translation-unit, so the build cannot see them either way; both were
+joined on the majority side rather than reconciled.
+
+- **`BAG_ITEMS_PTR_MIRROR`** is `extern struct bag_items *` in
+  `src/dungeon_ai_items.c`, `src/main_0200ECFC.c`, `src/main_0200EDC0.c` and now
+  `src/main_0200F798.c` — but `extern u8 *` in `src/main_0200CA54.c:8`.
+- **`DUNGEON_PTR`** is `extern struct dungeon *DUNGEON_PTR[];` in roughly a dozen
+  files, and now in `src/overlay_29_022F0590.c` — but plain
+  `extern struct dungeon *DUNGEON_PTR;` in `src/overlay_29_0230BBAC.c`. The
+  `DUNGEON_PTR[0]->` form and `(*DUNGEON_PTR).` produce the same
+  `ldr r0,[r4]`, which is exactly why nothing has forced the question.
+- **`WaitUntilAlertBoxPauseIsOver`** is `void (u32)` in
+  `include/overlay_29_0234BA54.h` but `extern s32 …();` in
+  `src/overlay_29_022F0EDC.c:78`. `src/dungeon_logic_6.c` uses the header.
+
+## Open questions for a reviewer
+
+- **`AFTERMATH_CHANCE`'s real type is not settled.** The target's `ldrsh` proves
+  this function reads it as a **signed 16-bit** value (**fact**), and
+  `const s16` reproduces that. But its slot in
+  `asm/overlay_10_rodata_022C4584.s` is **4 bytes** to the next `.global`,
+  initialised `32 00 00 00` — which does not discriminate `s16` + 2 bytes of
+  padding from a 4-byte object, and its two neighbours (`INGRAIN_BONUS_REGEN`,
+  `SET_DAMAGE_STATUS_DAMAGE`) occupy 4 bytes each as well. Same ambiguity for
+  **`ov29_023535A4`**: the target `strb`s `-2` into it (**fact**), `s8` reproduces
+  that, and the definition in `asm/overlay_29_data_023534E0.s` is
+  `FE 00 00 00` in a 4-byte slot.
+- **`enum music_id[30][4]` is a standing tripwire.** The declaration's correctness
+  depends on `-enum min` sizing `enum music_id` to 2 bytes. Adding a negative
+  enumerator, or one ≥ 65536, silently changes the array's element size and
+  un-matches `MusicTableIdxToMusicId`. Nothing in the tree records that dependency.
+- **`ov29_022DE5F0`'s return type is not pinned by this match.** It is declared
+  `extern s16 ov29_022DE5F0(s32 index);` in `src/dungeon_logic_6.c` and nowhere
+  else; the result is stored with `strh` into an `s16[2]`, which an `s32` return
+  would produce identically.
+- **`TryAftermathExplosion`'s fifth parameter is a guess.** It is declared
+  `s32 a` and every call passes a literal `0`.
+  `wip/AftermathCheck/var/ctx_extra.const.h` shows a variant that typed it
+  `enum type_id damage_type`; **which spellings were measured, and at what score,
+  is not recorded**, and the landed code takes the weaker, more honest form. The
+  function has no header anywhere in the tree.
+- **`IsMonsterMissionAllowedStory`** has no declaration in `include/` or `src/`
+  outside the new call site. Its ledger states the return type is not pinned here
+  (the only use is `if (!…)`, i.e. `cmp r0, #0`), so `bool8` is provisional.
+- **`ApplyGummiBoostsToTeamMember`'s `(s16 *)` cast on `&member->id`** exists
+  because `struct team_member::id` is `u16` while the callee takes `s16 *`. The
+  ledger **falsified** it as a codegen lever (no-cast also scores 0), so it is
+  there only for `-W error`. Its ledger names an untried alternative — widening the
+  callee prototype to `u16 *` — and notes that this would contradict the
+  `ground_monster` sibling landed one commit earlier and move the cast rather than
+  remove it. Worth an opinion.
+- **`ApplyGummiBoostsToTeamMember`'s third parameter is `int`, and probably
+  shouldn't be.** The value crosses through a 32-bit stack slot and is unobservable
+  in this function (measured: `int` and `bool8` both score 0 in the sibling's
+  ledger), but the callee reads it `ldrb r0,[sp,#0x2c]`, so `bool8` is the likelier
+  true type. `int` was chosen only to match the pre-existing extern.
+- **Whether `sub_02002228` was empty in the retail source** cannot be decided from
+  one `bx lr`. Its caller passes a MAC-address checksum, which reads like a seed,
+  so a body behind a disabled macro is at least as plausible as an empty one. The C
+  reproduces the bytes; it claims nothing about the original text.
+- **For the six functions without a ledger**, the search that produced the final C
+  is unrecorded. `wip/MusicTableIdxToMusicId/` retains seven candidate spellings
+  (`cand/draft.c`, `v2`–`v7`) and three context variants (`var/ctx_extra_enum.h`,
+  `var/ctx_extra_u16.h`, `var/enumtable.h`), so alternatives clearly were tried —
+  but **no scores were written down**, and this note deliberately does not guess
+  which failed or by how much.

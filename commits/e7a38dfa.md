@@ -1,0 +1,341 @@
+# `e7a38dfa` — Decompile `GenerateMission` (`0x0205D224`)
+
+| | |
+|---|---|
+| **Commit** | `e7a38dfa` (as of writing — renamed if amended or rebased) |
+| **Branch** | `decomp-continued`, on top of [`f8eaf87f`](f8eaf87f.md) |
+| **Verified** | the commit message records **`build/pmdsky.us/pmdsky.us.nds: OK`**. The wip ledger records **all three ROMs OK** — but at an *earlier spelling* of the same function (round 6); the committed spelling is round 9's, verified at **scratch score 0 in NA, EU and JP**, and re-verified at score 0 in all three regions after the fact (`wip/GenerateMission/STATUS.md`). **EU/JP ROM builds of exactly these bytes are not recorded.** |
+
+> **Unverified AI-authored reasoning.** Not part of the decompilation, never
+> merged, not authoritative. The PR diff and the matching build are the sources
+> of truth — see [the README](../README.md). Claims are labelled **fact** (read
+> off the asm/data, or from an existing in-tree header) or **inference**.
+
+---
+
+`GenerateMission` builds one bulletin-board mission from a 34-byte template: it
+picks a dungeon and floor, a client, one or two targets, and (for delivery-type
+missions) an item, each through a small switch over that template's per-field
+"strategy" selector, with three checkpoints that wipe the mission and return a
+status the caller dispatches on.
+
+## The numbers, re-derived for this note
+
+Counted here from `e7a38dfa^:asm/main_0205D1F4.s`, not taken from the wip:
+
+| claim | value | how |
+|---|---|---|
+| instructions | **864** | lines in the `arm_func_start`/`arm_func_end` block, minus the `arm_func_end` |
+| literal-pool words | **2** | `.word MISSION_DELIVER_LIST_PTR`, `.word 0x000001EA` |
+| address walk | `0x0205D224 + 866×4 = 0x0205DFAC` | the next object's start — it closes exactly |
+| labels | **98** | `_0XXXXXXX:` definitions |
+| jump tables | **9** | `addls pc, pc, rN, lsl #2` at asm lines 25, 162, 227, 449, 653, 816, 853, 887, 905 |
+
+**The commit message says "five jump tables". That is an undercount** — there are
+nine dispatches (six outer, three nested inside case bodies), 68 entries in
+total per the wip census. Nothing downstream depends on the number; it is
+flagged so a reviewer counting them does not think they are looking at the wrong
+function.
+
+## Landing shape — the file splits *and* the function merges
+
+**Fact.** `GenerateMission` is the **first** of the two functions in
+`asm/main_0205D1F4.s`, so `extract_function.py` takes the merge branch for the
+function (into the preceding `src/main_0205D11C.c`) *and* deletes the original
+`.s`, re-emitting the remainder as `asm/main_0205DFAC.s` (28 instructions,
+`CountAndPopulateValidMissionTableMonsters`). `main.lsf` stays **1333 lines**
+with one object swapped in place, `asm/main_0205D1F4.o → asm/main_0205DFAC.o`
+(verified here by diffing the two revisions of the file).
+
+The wip census predicted every number before the tool ran, and the ledger records
+them as exact: 38 lines in the new `.s`, 3 `.public` in the new `.inc`, 2 files
+deleted, `main.lsf` unchanged in length. **That is worth one caution rather than
+applause**: this is the code path where `mktarget.py`/`phase.py` died, because
+`extract_function.py` *removes* the source `.s` when the extracted function was
+the first in it, and both tools read it afterwards for the phase map. If you
+re-run the wip harness on this function, that fallback is the thing that has to
+work.
+
+## Signature
+
+```c
+s32 GenerateMission(struct unk_0205D224 *tmpl, struct mission *mission);
+```
+
+- **Arity 2 — fact, from dataflow.** Every appearance of `r2`, `r3`, `ip` and
+  `lr` in the body is written before it is read in the same basic block; `ip` and
+  `lr` appear nowhere but the `stmdb`. Because that sweep covers all body lines
+  it is reachability-independent, so the nine computed branches cannot hide an
+  incoming third or fourth argument. All four call sites (inside
+  `GenerateDailyMissions`, `asm/main_0205E48C.s`) set only `r0`/`r1`.
+  **Caveat, and it cannot be closed from bytes:** an *unused* parameter emits no
+  code, so `f(a,b)` and `f(a,b,unused)` are identical.
+- **The return set is exactly `{0, 1, 2}` — fact**, from tracing every reaching
+  definition of `r4`/`r5` at the six sites that branch to the single epilogue.
+  **The caller dispatches on all three** (`cmp r0,#2` → abandon the category,
+  `cmp r0,#1` → retry, up to 30 attempts) — so it is a status, not a bool. That
+  reading of *what* 0/1/2 mean is **inference** from the caller's control flow.
+- **Word width — strong inference, not fact.** There is no `and r0, r0, #0xff`
+  before any return, which on this toolchain is what an 8-bit return type emits,
+  ruling out `bool8`/`u8`. `s32` vs `int` vs `u32` vs `BOOL` is **not**
+  discriminated by any byte. One experiment was named and never run: whether a
+  narrow `enum` return also gets the mask.
+- `tmpl` is **read-only — fact** (zero stores through the register holding it,
+  and no NULL check; the callers test `GetRandomMissionTemplate`'s result first).
+
+## The two placeholder structs
+
+Both are new, both live in `include/main_0205D11C.h` **above** the prototype.
+The header placement is load-bearing, not style: naming a struct for the first
+time inside a parameter list scopes it to that prototype and MWCC then rejects
+the definition as a redeclaration under `-W error`.
+
+### `struct unk_0205D224` — the template, `0x22` bytes
+
+**Fact: the size.** `GetRandomMissionTemplate` computes the pointer the callers
+pass with `mov r1,#0x22 / mla r4, r0, r1, r2`.
+
+**Fact: the 6-byte inner stride**, from four independent sites in the body —
+`mov r0,#6 / mul r1,r6,r0 / add r5,sb,r1`; `mov r0,#6 / mla r0,r6,r0,sb`;
+`add fp, sb, #0x14` hoisted out of the loop with `add r1, fp, r1` inside it; and
+the two field-by-field spec comparisons. The declared shape —
+`u16 field_0x0; struct unk_0205DFAC field_0x2[5]; enum mission_type field_0x20;
+union mission_subtype field_0x21;` — tiles `2 + 5×6 + 1 + 1 = 34` exactly.
+
+**Inference: the grouping into five records.** The stride is measured; that the
+five 6-byte groups are *the same kind of thing* is read off how they are used
+(the loop indexes specs 3 and 4 by `i`), not proved.
+
+**Cross-check, layout only.** pmdsky-debug carries a 34-byte mission-template
+type with `ASSERT_SIZE(…, 34)` whose offsets agree with the independent
+derivation above, **including the two bytes at `0xa`/`0xb` this function never
+touches**. Its *names* were deliberately not ported (CLAUDE.md forbids importing
+upstream vocabulary outside a real sync), and its shape differs in one way that
+matters: **upstream flattens `0x14` and `0x1a` into separate named members, while
+the retail asm indexes them with a runtime `mul` by 6 from `sb+0x14`** — so
+whatever C the ROM was built from had *something* indexable there. Unresolved.
+
+**The tree has no `ASSERT_SIZE`/`STATIC_ASSERT` macro** (fact, grep), so `0x22`
+is asserted nowhere in-tree; it rests on the `mla` stride above.
+
+### `struct unk_0205DFAC` — the 6-byte record
+
+Named for `0x0205DFAC` = `CountAndPopulateValidMissionTableMonsters`, the
+function that takes one, per CLAUDE.md's "no global → name it for the function"
+rule. Note the address is the *callee's*, not this function's; that is
+deliberate, and it means the name survived when that callee landed later.
+
+Fields are `u16 field_0x0` (a selector — **fact**: every jump-table selector is a
+zero-extending load compared with an unsigned bound), `u16 field_0x2`, and
+`s16 field_0x4`. **`field_0x4`'s signedness is the interesting one**: it is read
+`ldrsh` at the "monster id" sites and `ldrh` at the "index into a table" sites,
+so the landed source declares it `s16` and writes `(u16)` at the index sites —
+nine `(u16)` casts in the body. See the next section for a measured alternative.
+
+The census had recommended declaring the callee's parameter as a bare `u16 *`
+(the "loosest type that compiles") rather than inventing a struct; the landing
+chose the struct. **Both are defensible; the struct is what is in the tree**, and
+it is what the callee's own header entry uses today.
+
+## Shared-type changes — read this part
+
+**1. `CheckItemForMissionType`'s second parameter was retyped**, in
+`include/main_0205D11C.h` and at its definition:
+
+```c
+-bool8 CheckItemForMissionType(u32 r0, u32 r1, s16 r2);
++bool8 CheckItemForMissionType(u32 r0, union mission_subtype *r1, s16 r2);
+```
+
+- **Fact:** all three call sites in `GenerateMission` do `add r1, sb, #0x21` —
+  the *address* of the template's subtype byte. The `u32` survived because `r1`
+  is never read inside the (already-decompiled, already-matching) callee body,
+  which is exactly why the build could not object to it.
+- **Fact:** it is exactly parallel to `CheckMonsterForMissionType` one line above
+  in the same header, which upstream already types `union mission_subtype *`.
+- **Blast radius, measured, not assumed:** at this commit
+  `include/main_0205D11C.h` is included by **exactly one** `.c` —
+  `src/main_0205D11C.c` itself (fact, grep) — and the only other caller of the
+  function is still assembly (`asm/main_0205CA40.s:191`), which resolves through
+  the linker and cannot see a C prototype. So the change re-compiles one
+  translation unit, which contains one already-matched function whose bytes the
+  US build re-confirmed.
+- It was a `-W error` blocker, not a cleanup: `GenerateMission` merges into that
+  same TU, so passing a pointer to a `u32` parameter would have failed the build.
+
+**2. The header gains two struct definitions** (above). Purely additive; no
+existing type was touched.
+
+**3. What was deliberately NOT changed, and this is the bigger reviewer item.**
+`include/mission.h` (pmdsky-debug's) and `struct mission_deliver_list` were left
+alone, and the function instead reaches around them with type-puns:
+
+| the tree as it stands | what the body writes | why |
+|---|---|---|
+| `enum item_id item_wanted` — `-enum min` makes it **unsigned** | `*(s16 *)&mission->item_wanted`, ×4 | the target reads it **`ldrsh`** — fact, four sites |
+| `enum dungeon_id dungeon_id; u8 floor;` as two flat fields | `(struct dungeon_floor_pair *)&mission->dungeon_id` | two callees take a `dungeon_floor_pair *` and the asm passes `add r0, r8, #4` — fact |
+| `target` and `outlaw_backup_species` as two members | `((s16 *)&mission->target)[i]`, ×10 | the loop stores through a computed base `add r1, r8, r6, lsl #1 / strh …, [r1,#0x10]` — fact |
+| `struct mission_deliver_list { u8 unk0[0x18]; u8 *unk18; }` | `*(s32 *)&…unk0[0xc]`, `*(u8 **)&…unk0[8]`, … | the six words the function reads all live inside the opaque `unk0` blob — fact; the declared **size `0x1c` is already correct** |
+
+**A later wip round measured the pun-free alternative and it is free.** Five
+declaration changes — a `union { s16 id; u16 index; }` third member in
+`unk_0205DFAC`, a nested `struct dungeon_floor_pair` in `struct mission`,
+`item_wanted` as `s16`, real members for the deliver list's first six words
+(size unchanged at `0x1c`), and `target[2]` — remove **all 12 type-puns and 8 of
+the 9 `(u16)` casts** at **score 0 in NA, EU and JP together**. **None of it is
+in this commit**, and the ledger is explicit that `match.c`, the contexts and
+`pmd-sky/` were untouched by that round.
+
+Two honest caveats on that measurement:
+
+- It was measured **on a scratch**, against this one function. Changes 2, 3 and 5
+  touch `include/mission.h`, which one other file reads
+  (`src/main_0205C73C.c:107-131`, itself full of the same puns). **That file has
+  no harness and was not measured; only a build settles it.**
+- The signedness control is the part that makes the zeros mean something:
+  declaring `item_wanted` as **`u16`** — the same width — scores **400**. The pun
+  is supplying signedness, not width.
+
+## The spellings a reviewer will push on
+
+All of these are in the landed body, all are ordinary C (no inline asm anywhere),
+and each was measured rather than assumed. Costs below are wip-harness scores,
+where 0 = byte-identical.
+
+| spelling | why it is there | status |
+|---|---|---|
+| three `*(volatile enum … *)&mission->…` casts | force a reload the target performs; deleting them costs 115 / 260 / 360 | **stand-in.** A pmd-red-style `volatile` *local* copy was tried and is inert (MWCC forwards it) — it scores the same as deleting the cast |
+| `tmpl->field_0x2[(u32)i + 3]` at the spec comparison | gives MWCC a distinct multiply at that site | **stand-in.** Mechanism proven, spelling is not known to be retail's |
+| the case-0/1 monster id reusing the function-scope `s16 m` | its live range must be *born* before the loop; every purely declarative move (hoisting, dead store) is byte-identical | **stand-in**, mechanism proven |
+| `int i`, not `s32 i` | `s32` is `signed long`, and `long ≠ int` to this front end; `int` moves the counter's web to the back of the allocation order. `u32 i` and `register int i` reach the same state, so the split is `long` vs everything else, **not** signedness | measured: the three reachable states are **cyclic rotations** of one register sequence, and only `int i` *together with* the `m` reuse reaches 0 (160 → 130 → 130 → **0**) |
+| `for (i = 0; i < sl \|\| (err = 0); i++)` | `err = 0` must run on the condition's **false edge** only. The IR dump shows the assignment landing in a flowgraph node with two successors, the second dead and folded | four spellings measured; a post-loop `if (i >= sl)` costs +1 row / 29, a top-tested loop 8 |
+| three `do { … } while (0)` wrappers | what replaced 21 `goto`s (below) | free |
+| `struct { u8 list[1]; struct dungeon_floor_pair df; } x;` as a local | the two small slots are **one 3-byte object**: all six permutations of three separate locals give the same, *wrong*, slot map. Grouping is what matters, not the spelling | 6 of 6 stack offsets exact |
+| `err` reused to hold a count (`err = CountAndPopulate…(…); … RandInt(err)`) | the target keeps that return live in the register across the test and feeds it straight to `RandInt` (**fact**, asm) | **my reading of the landed source; the wip does not record this one as a measured decision.** That the source achieved it by reusing this particular variable is **inference** |
+
+## Declarations: 19 added, one left disagreeing
+
+**Added.** The commit adds 19 provisional `extern`s to `src/main_0205D11C.c` for
+callees with no header anywhere, plus 8 `#include`s for the 15 callees that do
+have one. Every *name* is a literal `bl <name>` in the target (fact); the
+**argument types are inference**, read off each callee's own body where one was
+read. Five were typed as pointers on the strength of the callee's body rather
+than the call site — `GetAllPossibleMonsters(s16 **)`,
+`sub_02062C4C(…, u8 *, struct dungeon_floor_pair *, …)`,
+`sub_02062D40(struct dungeon_floor_pair *)`, `RollRandomItemReward(…, s16 *)`,
+`sub_02062900(u16, s16 *, void *)` — which is the class of error CLAUDE.md's
+`RemoveItemNoHoleCheck` example is about.
+
+**Already retired, partly.** A later branch commit (`97cce9df`) decompiled
+`CountAndPopulateValidMissionTableMonsters` into this same file and moved its
+declaration into `include/main_0205D11C.h`, deleting the provisional `extern`
+this commit added — which is the intended lifecycle.
+
+**Left disagreeing — flagged by the census, and not fixed here.** `sub_0205E258`
+is declared two incompatible ways:
+
+```
+include/main_0205E288.h:12   bool8 sub_0205E258(struct mission *mission);      /* and its definition */
+src/main_0205E01C.c:6        s32   sub_0205E258(struct unkStruct_0205E01C *ptr);
+```
+
+Different return type **and** different parameter type, in two translation units
+that never meet — so **no build in any region can see the disagreement**, and the
+ROM matches either way. `GenerateMission` calls it five times, always with the
+mission, and (fact, checked at `HEAD`) **the second declaration is still there**.
+The census's recommended fix — delete the `main_0205E01C.c` line and include the
+header — is *not* obviously byte-neutral in that file, because
+`src/main_0205E01C.c:13` tests `sub_0205E258(ptr) != 0` and the return type
+changes; it needs a build, which is presumably why it was left.
+
+**A wart from the same diff:** `#include "item_util.h"` is added although the file
+already included it (fact, read off the diff). Harmless, but it should go.
+
+## The shape: zero `goto`s, and how that was settled
+
+The function reached score 0 with **28 `goto`s** and ended with **0** — the whole
+of ledger rounds 8, 8b and 9 is source quality at a fixed, already-matching byte
+output. Worth reading because the reasoning error it records is generic:
+
+- The first draft argued nesting was *impossible* here, from the target having a
+  **shared join block** and several separately predicated `moveq` sites. That
+  generalised one spelling's `+2 rows` into a claim about the construct. It was
+  wrong three independent ways, all at 864 rows / 0 differing: an exhaustive
+  search over 531 shapes found the `+2` was **polarity** (a guard written
+  success-first; failure-first nests at 0); a region-wide redesign nested every
+  affected case at once; and **NOP-ing the compiler's head-tail-merge pass moved
+  the same source 866 → 868**, proving the shared block is created by the
+  compiler, not written in the source.
+- The two `goto`s that survived rounds 8/8b were then *also* removed in round 9,
+  after disassembling the compiler: the head-tail-merge gate documented in
+  `MATCHING_TIPS.md` was wrong (it requires the two arms of one `if`/`else`,
+  not "a join with two predecessors"), and **nothing in the block optimizer can
+  duplicate a statement**, so a shared block at a many-predecessor join really
+  does come from shared source — which is what the `do { … } while (0)` shape
+  expresses.
+
+**The ledger's round numbering is not commit history.** Round 6 is titled
+"MATCHED, and landed", but "landed" there means *inserted into the working tree
+and built*; rounds 7–9 then changed the source in place. What is in this commit
+is the **round-9 shape** — verified directly: the committed file contains **zero**
+`goto` (fact, grep). Round 10 (the pmd-red cross-reference above) postdates the
+commit and applied nothing. The intermediate states are described in
+`wip/GenerateMission/LEDGER.md`; I have not reconstructed any step that file does
+not record.
+
+## Dead ends recorded in the ledger — do not re-run
+
+Measured, with numbers, in `wip/GenerateMission/LEDGER.md`:
+
+- All six permutations of three separate stack locals — identical, wrong, slot map.
+- `e = 1; break;` in place of the shared-exit assignment: 6 real rows
+  (2 missing + 2 extra + 2 cfg), before *and* after the surrounding nesting.
+- `err = 0` at the loop top (−1 row, 74), before every successful `continue`
+  (+3, 74), post-loop `if (i >= sl)` (+1, 29), an explicit skip flag (+13).
+- Naming the LICM temp to reorder it — the `MATCHING_TIPS.md` lever for this —
+  is **inert here** in all three placements tried (up to 1844).
+- Dropping the `(u16)` casts while `field_0x4` stays `s16`: 2400. (Round 3 drew
+  "so a union is ruled out" from this; **that inference did not follow** — the
+  union was never the thing tested, and round 10 measured it free.)
+- `volatile`-cast replacements: a local copy scores exactly the same as deleting
+  the cast, so it is not a replacement.
+
+## Open questions for a reviewer
+
+1. **The three `volatile` casts, the `(u32)i + 3`, and the `m` reuse are
+   stand-ins.** Each has a proven mechanism and an unknown spelling. They are the
+   things to push on hardest.
+2. **The shared-header question is open, not settled.** Five measured,
+   byte-neutral-on-this-function declaration changes would delete every pun in
+   the file; they touch `include/mission.h` and one unmeasured other TU. Someone
+   should decide whether the tree wants them.
+3. **`sub_0205E258` still has two contradicting declarations** (above). A build
+   cannot adjudicate it; a human must.
+4. **EU/JP ROM builds of exactly these bytes are not on record** — only the US
+   build, plus score 0 in all three regions on the scratch. The instruction
+   stream is region-invariant (fact: zero preprocessor lines in the whole `.s`,
+   against 291 of 454 `asm/*.s` files that do carry them), so this is very likely
+   fine, but "very likely" is the honest word.
+5. **The linked bytes are *not* identical across regions**, despite the commit
+   message's framing: the pool word at function offset `+0x380` is a relocation
+   to `MISSION_DELIVER_LIST_PTR`, and region-conditional data with unequal-size
+   arms precedes that symbol's definition. Expected, not a defect.
+6. **The template's offsets `0x00` and `0x0a`/`0x0b` are never touched here**; their
+   existence rests on the `0x22` stride and the upstream size assertion, and their
+   types are unknown. `sub_0206276C` reads the same table and would narrow it —
+   **nobody has read it**.
+7. **Signedness is undetermined** for template offsets `0x10`, `0x16`, `0x1c`,
+   `0x1e` and `mission` offset `0x12`: a 16→16 copy and an `==` comparison reveal
+   nothing. Recorded as unknown rather than guessed.
+8. **`struct mission` offsets `0x03`, `0x16`, `0x18` are unverified by this
+   function.** The field census is exhaustive *for this function*, not a total for
+   the type.
+9. **Naming was out of scope and stayed out.** `GenerateMission` and the named
+   callees keep the names the tree already had; the two new structs are
+   placeholders; nothing was ported from pmdsky-debug beyond checking a layout.
+10. **`0x26`, `0x29`, `0x49` (38, 41, 73) are unclassified constants.** They were
+    shown not to be message ids; what they *are* was not established.
+11. Ten callees were never read end-to-end, only their headers plus the call site
+    (`MemFree`, `RandInt`, `GetMax{Members,Items}Allowed`, `IsThrownItem`,
+    `IsStorableItem`, `sub_0205E090`, `sub_0205E1E8`, `sub_0205CF58`,
+    `CheckMonsterForMissionType`). All 15 undeclared ones were read.
