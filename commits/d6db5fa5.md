@@ -1,0 +1,656 @@
+# `d6db5fa5` — Decompile 86 more callees; clear three asm files, split a fourth
+
+| | |
+|---|---|
+| **Commit** | `d6db5fa5` (as of writing — renamed if amended or rebased) |
+| **Branch** | `decomp-continued`, on top of `76558112` |
+| **Verified** | all three ROMs: `pmdsky.us.nds: OK`, `pmdsky.eu.nds: OK`, `pmdsky.jp.nds: OK` |
+
+> **Unverified AI-authored reasoning.** Not part of the decompilation, never
+> merged, not authoritative. The PR diff and the matching build are the sources
+> of truth — see [the README](../README.md). Claims are labelled **fact** (read
+> off the asm/data, measured by a harness, or from an existing in-tree header) or
+> **inference**.
+
+---
+
+Eighty-six functions land, from four `asm/*.s` files. Three clear entirely; the
+fourth **splits**, because one of its twenty-three functions was not matched in
+time.
+
+**The function count is the least interesting thing here.** This commit carries
+**two shared-type changes to `include/`**, a **split object in `main.lsf`**, a
+third appearance of the `DUNGEON_PTR` completeness lever, and a **35-line
+declaration cleanup across nineteen files in which eleven declarations were
+wrong** — six of them hard compile errors the moment the new headers reached
+them. Those are what a reviewer should spend time on, and they are argued first.
+
+One of them — the `struct ground_monster` retype — is a case where **the
+wip harness measured the change as byte-equivalent to the alternative and
+recommended against making it**, and the landing made it anyway on a different
+argument. That disagreement is set out in full in §1; it is the single item
+here most in need of a human decision.
+
+## What landed, and where
+
+**Fact**, read out of the diff and `main.lsf`.
+
+| asm file | fns | outcome | destination |
+|---|---|---|---|
+| `asm/overlay_29_022E4BB4.s` (825 lines) | 26 | **cleared** | all 26 merged backwards into **`src/overlay_29_022E4B8C.c`** / `.h` |
+| `asm/overlay_29_0230D088.s` (845 lines) | 25 | **cleared** | all 25 merged backwards into **`src/overlay_29_0230BBAC.c`** / `.h` |
+| `asm/overlay_29_022EA008.s` (737 lines) | 13 | **cleared** | all 13 merged backwards into **`src/overlay_29_022E9FC0.c`** / `.h` |
+| `asm/main_02055894.s` (794 lines) | 22 of 23 | **split** | 3 backwards into **`src/main_02055770.c`**, 19 forwards into **`src/main_02056294.c`**; `sub_020559D8` stays as **`asm/main_020559D8.s`** (102 lines) |
+
+26 + 25 + 13 + 22 = **86** (fact, counted). `main.lsf` loses **four** `Object`
+lines and gains **one** — `Object asm/main_02055894.o` → `Object
+asm/main_020559D8.o` — for a net of three objects removed (fact, from the diff).
+Three `asm/include/*.inc` files go with the cleared files and one new one
+(`asm/include/main_020559D8.inc`) appears.
+
+Per-group address walks close exactly on the next object's first symbol in every
+case, so each `.s` contained exactly those functions and nothing else (**fact** —
+`tools/mktarget.py` in each wip re-derives and asserts this on every run:
+`0x022E4BB4..0x022E563C` 656 insn + 18 words; `0x0230D088..0x0230DB14` 660 insn +
+15 words; `0x022EA008..0x022EA968` 568 insn + 32 words;
+`0x02055894..0x02056294` 612 insn + 28 words).
+
+Landing evidence per group:
+`wip/overlay_29_022E4BB4_all/STATUS.md`, `wip/overlay_29_0230D088_all/STATUS.md`,
+`wip/overlay_29_022EA008_all/STATUS.md`, `wip/main_02055894_all/STATUS.md`, each
+with a `LEDGER.md` of falsified attempts.
+
+---
+
+# 1. Shared-type change: five `struct ground_monster` members retyped
+
+`include/common.h`:
+
+```c
+-    s8 level;               // 0x1: Monster level
++    u8 level;
+-    s8 level_at_first_evo;  // 0x6: Level upon first evolution, or 0 if not applicable
+-    s8 level_at_second_evo; // 0x7: Level upon second evolution, or 0 if not applicable
+-    u16 iq;                 // 0x8
+-    u16 max_hp;             // 0xA
++    u8 level_at_first_evo;
++    u8 level_at_second_evo;
++    s16 iq;
++    s16 max_hp;
+```
+
+### The reading, and why it validates itself
+
+**Fact, read off `sub_02055E14`'s asm.** That function copies
+`struct ground_monster` (0x44) into a 0x4C-byte serialised form field by field.
+It reads `level`, `level_at_first_evo` and `level_at_second_evo` with **`ldrb`**
+(unsigned byte) though all three are declared `s8`, and `iq` and `max_hp` with
+**`ldrsh`** (signed halfword) though both are declared `u16`.
+
+**Fact, the self-check.** In the same function, every member whose declaration is
+*already* right reads exactly as declared — `id` at 0x4 is declared `s16` and is
+read `ldrsh`, `exp` at 0x10 is declared `s32` and is read `ldr`, the two 2-byte
+`u8` arrays read as bytes. So the reading is not "whatever makes it match": it is
+a rule that holds across the whole struct and fails on exactly five members.
+
+**Fact, and this is the load-bearing measurement** (`LEDGER.md` §C.1, each a
+single real compile at base 3075): the load's width **and signedness come from
+the source member's declared type and from nothing else.** Falsified, all inert:
+
+* an explicit `(u8)` cast on the read — **no change**;
+* an explicit `(s16)` cast on `mon->iq` — **no change**;
+* changing the *destination* field's type — **no change**.
+
+Only two spellings move it: a pointer pun (`*(u8 *)&mon->level`) or retyping the
+member. A cast at the read site genuinely cannot fix this, which is the transfer-
+able part.
+
+### Where the wip and the landing disagree — read this before approving
+
+**Fact, from `wip/main_02055894_all/LEDGER.md` §C.5 and `STATUS.md` §7.1.** The
+harness applied the retype to a copy of the generated context and scored it
+against the pun:
+
+| spelling | `sub_02055E14` | `sub_02055F04` |
+|---|---|---|
+| pointer pun, header untouched | 235 | 225 |
+| five members retyped, puns removed | **235** | **225** |
+
+Identical. **The bytes do not choose between them.** On that basis the wip's
+STATUS says *"Shared-type changes: none required"* and ships the pun, reasoning
+that there is no reason to touch a canonical shared header when the emission is
+the same.
+
+**The landing did the opposite** — it took the retype and dropped the puns
+(fact: `src/main_02056294.c:130-137,158-165` read `mon->level`, `mon->iq`,
+`mon->max_hp` plainly, with no cast anywhere).
+
+**The argument for the landing's choice is *not* a byte argument** — it cannot
+be, since both score the same. It is: the load widths are direct evidence about
+what retail's declaration was, a pun is a cast in disguise, and the workspace's
+own rule is to fix the declaration rather than cast around it. That is a
+judgement, and it is offered as one. **Inference**, stated as such: retail's
+`ground_monster` most likely had `u8`/`u8`/`u8`/`s16`/`s16` here and both this
+tree and pmdsky-debug have it wrong.
+
+### Blast radius — what actually had to move, and what did not
+
+* **Fact: no offset moves.** `s8`→`u8` is same-width; `u16`→`s16` is same-width.
+  Nothing in the struct shifts and no padding appears. Confirmed by all three
+  builds.
+* **Fact: exactly one call site in the tree had to change.**
+  `src/main_020114F8.c` declared
+  `extern void ApplyGummiBoostsGroundMode(s16 *monster_id, u16 *iq, …)`, and
+  `&monster->iq` stops type-checking once `iq` is `s16`. The declaration was
+  narrowed to `s16 *iq` — so `ApplyGummiBoostsToGroundMonster` now passes
+  `&monster->iq` **with no cast at all**, where it would otherwise have needed
+  one.
+* **Fact, and it is the awkward half:** the *other* function in that same file,
+  `ApplyGummiBoostsToTeamMember`, gained a cast — `(s16 *)&member->iq` — because
+  `struct team_member::iq` is **still `u16`** and was not retyped. So the commit
+  removes one cast and adds another, four lines apart.
+* **Fact:** `ApplyGummiBoostsGroundMode` is **still assembly**. Its prototype is
+  therefore now pinned by a *reading of one of its callers' neighbours*, not by
+  its own body. Whoever decompiles it should check `iq` against the callee's own
+  loads and correct this if it disagrees.
+
+### Divergence from pmdsky-debug
+
+**Fact**, recorded in the wip: pmdsky-debug declares these members `s8`/`s8`/
+`s8`/`u16`/`u16` — the shape this commit moves away from. This is a deviation
+from upstream, not a port of it, and it is a sync question for whoever next runs
+`sync_to_pmdsky_debug.py`.
+
+---
+
+# 2. Shared-type change: `struct dungeon::field_0x1c`, two `u8` → one `s16`
+
+`include/dungeon.h`:
+
+```c
+     // 0x1C: Increased once per frame until 0x64. Resets to 0 when the leader acts.
+-    u8 field_0x1c;
+-    u8 field_0x1d;
++    s16 field_0x1c;
+```
+
+**Fact, forced by `ov29_022EA008`**: `ldrsh r0, [r1, #0x1c]` / `cmp r0, #0x64` /
+`strlth r0, [r1, #0x1c]` — a **16-bit signed** access at 0x1C, which two
+independent `u8` members cannot produce at any spelling.
+
+**Fact, layout preservation, and it is structural rather than measured-by-luck**:
+0x1C is 4-aligned (the preceding member is `u32 successful_exit_tracker` at 0x18)
+and 0x1E is the existing `s16 number_completed_floors`, so no padding can appear
+on either side of the merge.
+
+**Fact, measured before landing** (`wip/overlay_29_022EA008_all/STATUS.md` §6b):
+all 13 functions of that group score 0 against the patched context, and between
+them they read `struct dungeon` at 0x1C, 0x1E0, 0x40C4, 0x1A21C, 0x1A224,
+0x1A226, 0x1A230, 0x1A23C, 0x1A23E, 0x1A24A and 0x1A251 — every one of those
+displacements would be wrong if the merge had moved anything at or after 0x1C.
+
+**Fact, blast radius**: no other translation unit names either field
+(`grep -rn "field_0x1c\b\|field_0x1d\b" src/` finds only unrelated structs), so
+no already-matching function can move.
+
+**Fact, corroboration that is not mine**: the header's own pre-existing comment
+on that offset reads *"Increased once per frame until 0x64. Resets to 0 when the
+leader acts."* — which is exactly what the `cmp #0x64` / conditional store does.
+The comment survives on the merged member verbatim; nothing was authored.
+
+---
+
+# 3. The split: `asm/main_02055894.s` → `asm/main_020559D8.s`
+
+**Fact.** `sub_020559D8` stood at **score 75** — **0 structural rows**, 11
+register-colouring rows — when this commit was made, so it could not land. It
+sits at 0x020559D8, the **fourth** of twenty-three functions, i.e. in the middle
+of the file. The consequence, from the diff:
+
+* 3 functions before it (`sub_02055894`, `GetFirstMatchingMemberIdx`,
+  `GetFirstEmptyMemberIdx`) merged **backwards** into `src/main_02055770.c`;
+* 19 functions after it merged **forwards** into `src/main_02056294.c`;
+* `sub_020559D8` alone became **`asm/main_020559D8.s`** (102 lines) with its own
+  `.inc`, and `main.lsf` swapped one object line for another.
+
+**This is exactly the cost `146982f0`'s note predicted**, realised: *"a straggler
+in the middle of a contiguous `.s` costs far more than its own function; one at
+either end costs almost nothing."* Here it cost a new asm object, a new `.inc`,
+a **second** destination file and header, and — see §5 — a much wider header
+exposure than the wip's landing plan had assumed.
+
+**Fact, landing mechanics worth recording**: the split creates *new* files, which
+`precommit.py --commit` (`git add -u`) does not stage. They are present in the
+commit, so it was handled, but this is the case the `--add-untracked` guard
+exists for.
+
+**It has since been matched.** `sub_020559D8` closed at score 0 and landed in
+**`50ef900c`** ([note](50ef900c.md)), which deletes `asm/main_020559D8.s`, its
+`.inc` and the `Object asm/main_020559D8.o` line again (fact, from that commit's
+diff). So a reviewer reading the branch in order sees this object appear here and
+disappear two commits later; `asm/main_02055894.s`'s range is fully clear at the
+branch tip.
+
+**Fact, what closed it** (`wip/main_02055894_all/LEDGER.md` §D.5–D.8, recorded
+after this commit): the discriminator was **not** a declaration lever. All 24
+orders of `{m, i, dst, j}`, all 120 of `{m, i, dst, j, w}`, and 284 scope ×
+statement-order variants — roughly 450 measured candidates — never moved the two
+offending registers. The fix was one line in the **trailing** loop, furthest from
+the eleven differing rows: `dst->is_valid = 0; dst++;` → `dst++->is_valid = 0;`.
+Both spell the same instruction (`strb r1, [r7], #0x44`); only the register
+allocation changes.
+
+---
+
+# 4. `DUNGEON_PTR` again: `[2]`, not `[]`, in a third file
+
+`src/overlay_29_022E9FC0.c` declares `extern struct dungeon *DUNGEON_PTR[2];`
+(fact, line 53 of the landed file — the file declared none before).
+
+**Fact, measured** (`wip/overlay_29_022EA008_all/LEDGER.md` §2), body held
+identical throughout:
+
+| declaration | `ov29_022EA008` |
+|---|---|
+| `extern struct dungeon *DUNGEON_PTR[];` — the tree's commonest spelling | **1025** (10 structural rows, +1 instruction) |
+| `extern struct dungeon *DUNGEON_PTR[2];` | **215**, then 0 with §9's `u8 room` temp |
+
+**Inference, from the ledger and stated as such there:** under the incomplete
+array type MWCC keeps `DUNGEON_PTR[0]` live across the
+`display_data.field_0x20 = 2` store, where retail reloads it.
+
+**Fact, and it is what makes this a third data point rather than a repeat:**
+`docs/MATCHING_TIPS.md`'s existing entry on this lever was written from a
+**storing loop**. `ov29_022EA008` is plain straight-line store-then-reload with
+no loop anywhere, and the lever still applies. It also confirms, rather than
+assumes, the prediction that entry left open.
+
+**Fact:** `[]` and `[2]` are compatible types, so **not one use site changed** —
+all thirteen `DUNGEON_PTR[0]->` spellings in the landed file are untouched.
+
+**Do not normalise this.** Fact, in both directions and now across three files:
+`ov29_022EA008` goes 0 → 1025 under `[]`, while other files require `[]` or the
+scalar. Which spelling a file wants is decided per function by what the allocator
+does with it. `146982f0`'s note records the same conclusion for
+`src/dg_camera.c`; this is the third file to need the complete type.
+
+**Open, and unknowable from bytes** (carried forward unchanged from that note):
+whether retail wrote `[2]`, `[]`, the scalar, or something else. Several
+declarations reach score 0. `[2]` is chosen because it is in-tree, exactly sized
+(fact: `DUNGEON_PTR` measures 8 bytes to the next `.global` in
+`asm/overlay_29_data_023534E0.s`) and type-compatible.
+
+---
+
+# 5. The declaration cleanup — 35 lines, 19 files, **eleven of them wrong**
+
+**Fact, counted from the diff:** 35 declaration lines removed or corrected in
+place, across 19 files. Most are replaced by an `#include` of the header that now
+owns the function.
+
+This was **not** optional hygiene in this commit, and that is the structural
+point: because the new prototypes land in headers that other files already
+include, six of the stale declarations become **hard `-W error` compile errors**
+the moment the headers are touched.
+
+### 5a. The six that were hard errors
+
+**Fact** (`wip/overlay_29_022EA008_all/STATUS.md` §5a). All six sit in files that
+include `overlay_29_022E9FC0.h`:
+
+| file | stale declaration | conflicts with |
+|---|---|---|
+| `src/overlay_29_022F0EDC.c` | `extern void UnkMapRelatedFunc(u32, u32);` | `s32 switch_case` |
+| `src/overlay_29_022F0EDC.c` | `extern s32 ov29_022EA370();` | `void` return, no prototype |
+| `src/overlay_29_022F0EDC.c` | `extern s32 ov29_022EA3B4();` | `void` return, no prototype |
+| `src/overlay_29_0234B104.c` | `extern void UnkMapRelatedFunc(u32 switch_case, u32 param_2);` | `s32 switch_case` |
+| `src/overlay_29_0234BA54.c` | `extern void UnkMapRelatedFunc(u32 switch_case, u32 param_2);` | `s32 switch_case` |
+| `src/overlay_31_02382820.c` | `extern void UnkMapRelatedFunc(u32, u32);` | `s32 switch_case` |
+
+**Fact, why `UnkMapRelatedFunc`'s first parameter really is signed and all four
+in-tree declarations were wrong:** the dispatch is `cmp r4, #0xd / bgt` together
+with `cmp r4, #0 / addge pc, pc, r4, lsl #2` — a **signed** range test with an
+explicit negative guard. An unsigned switch emits `bhi` and no `cmp r4, #0`.
+Every call site passes a small constant, so **the ROM is unaffected either way**
+— which is precisely why nothing but a declaration census finds it.
+
+### 5b. The five that were wrong parameter or return types
+
+**Fact** (`wip/overlay_29_0230D088_all/STATUS.md` §5, and the diff):
+
+| declared, in the tree | reality, from the asm |
+|---|---|
+| `ApplyDamageAndEffectsWrapper(…, s32 b)` — 3 files | 4th parameter is **`s16`**: `stm sp, {r3, r4}` forwards it to `ApplyDamageAndEffects`' `s16 a6` with **no** sign-extension; declaring it `s32` adds `lsl`+`asr` (measured 420) |
+| `CalcDamageFixedNoCategory(…, s32 b, s32 damage_source, …)` — 2 files | 6th is **`enum type_id`**, 7th is **`s16`** (`ldrsh [sp,#0x5c]`) |
+| `CalcDamageFixedWrapper(…, s32 type, s32 category, s32 damage_source, …)` — 2 files | 6th **`enum type_id`**, 7th **`u8`** (`ldrb [sp,#0x28]`), 8th **`s16`** |
+| `extern int ov29_0230D628();` / `ov29_0230D688();` / `ov29_0230D7D4();` | all return **`void`**; they take `struct entity *`, `struct item *`, `struct entity *` |
+| `extern int ov29_022E5478();` / `ov29_022E550C();` | return **`void`**, and carried no parameter list at all |
+
+**Fact:** a build can never catch any of these. Two declarations in two
+translation units never meet, so the ROM matched with every one of them wrong.
+
+### 5c. `enum type_id` is forced by the bytes, and it forced 16 call sites
+
+**Fact, measured three ways** (`wip/overlay_29_0230D088_all/STATUS.md` §6,
+`LEDGER.md` L5) — each alternative is falsified **at a different site**, which is
+what makes the enum the answer rather than a preference:
+
+| type | `CalcDamageFixed` (uses it arithmetically) | the three forwarders (copy it onward) |
+|---|---|---|
+| `u8` | **260** — `ldrb` where retail has `ldr` | 0 |
+| `s32` | **684** | **200 each** — `ldr` where retail has `ldrb` |
+| `enum type_id` | **0** | **0** |
+
+**Inference, the mechanism** (consistent with every row, not independently
+proven): under `-enum min`, `enum type_id` (max 18) occupies one byte, so MWCC
+reads an incoming stack slot with `ldrb` when the value is only copied onward and
+with `ldr` when it is promoted to `int`. **Fact:** the conversion is *not* folded
+into the load — declaring the forwarders `s32` and converting at the forwarding
+call adds three instructions each (measured 710 / 1157 / 1452).
+
+**Fact, the consequence at call sites:** `src/overlay_29_0231CBC8.c` (14 sites)
+and `src/overlay_29_0231EDD8.c` (2 sites) change their 6th argument from `0` to
+**`TYPE_NONE`**. `TYPE_NONE` *is* 0, so this is byte-neutral — and it is
+**required**, because an enum-typed parameter will not take an integer literal
+under `-W error`.
+
+### 5d. Two callers where fixing the prototype alone made the object *bigger*
+
+**Fact** (`wip/overlay_29_0230D088_all/STATUS.md` §5, LEDGER L6). In
+`src/overlay_29_0232A04C.c` and `src/overlay_29_0232CD90.c`, correcting only
+`CalcDamageFixedWrapper`'s prototype **grew each object by 16 bytes**. Four
+declarations in each file were one type too wide; with all four corrected, both
+objects are byte-identical again:
+
+```c
+extern s16 GetDamageSourceWrapper(struct move *move, enum item_id item_id); /* was s32 */
+...
+    enum type_id type = GetMoveType(move);              /* was s32 */
+    u8 category = GetMoveCategory(move->id);            /* was s32 */
+    s16 source = GetDamageSourceWrapper(move, item_id); /* was s32 */
+```
+
+**Fact, evidence for each**: `GetDamageSourceWrapper`
+(`asm/overlay_29_02324BE8.s:201`) is a two-line tail-call into `GetDamageSource`,
+so its return type is that function's, not `s32`; `GetMoveType` is declared
+`enum type_id` in `moves_2.h` and `GetMoveCategory` `u8` in `main_0201514C.h` —
+the two locals were simply not catching up with their own initialisers.
+
+This is the "fix the declaration, do not cast" rule paying off with a measured
+result rather than an argument, and the ledger records the four spellings
+falsified before it.
+
+### 5e. Byte-neutrality was measured, not assumed
+
+**Fact.** Both large groups compiled every affected caller **twice** — as it
+stands in the tree and patched — with the real flag set and the real warning set,
+and compared the **object bytes** in all three regions:
+
+* `wip/overlay_29_0230D088_all` (`tools/objcheck.sh`): `SAME` in
+  NORTH_AMERICA / EUROPE / JAPAN for all seven patched callers.
+* `wip/overlay_29_022E4BB4_all` (`tools/callercheck.sh`): 4 callers, every
+  function in each object identical in all three regions.
+
+**Fact, and the honest caveat the wip states itself:** `objcmp --all` compares
+`STT_FUNC` symbols with non-zero size, so `overlay_29_02308FBC.o`'s "3/3" is
+every function that file defines — complete coverage, but a smaller number than
+the file's size suggests.
+
+### 5f. The census found a wrapped declaration again
+
+**Fact.** One of the 35 removed lines is
+`extern void sub_02056094(char *dst, struct ground_monster *ground_monster,` —
+its parameter list continues on the next line, with `bool8 is_leader` on the far
+side of the break. A line-oriented `grep` for `NAME(...);` cannot see it. Each
+group's `tools/census.py` is multiline-aware by construction (comment-stripped,
+brace-depth aware, `re.S`), and `wip/overlay_29_022E4BB4_all`'s version
+**self-checks at import** against a deliberately wrapped declaration — and was
+corrected twice because that self-check failed. A census that cannot fail loudly
+would have reported "nothing disagrees".
+
+This is the method `146982f0`'s note flagged after eight wrapped declarations
+were missed by a line-oriented pass. It is now instrumented in all four wips.
+
+---
+
+# 6. New and extended types
+
+**Fact.** None of these is shared beyond the file or header named.
+
+| type | where | shape | evidence |
+|---|---|---|---|
+| `struct unk_02055E14` (+ `_18`, `_2a`) | `include/main_02055770.h` | 0x4C bytes | every offset read off `sub_02055E14`/`sub_02055F04`'s stores and loads; width = the store width. `0x42 + 10 = 0x4C`, alignment 4 ⇒ no tail padding. **Independent corroboration**: `include/main_02058FA4.h` already carries `const u8 field_0x18[4][0x4c];` for the same layout |
+| `struct unk_02353560` | `src/overlay_29_022E9FC0.c` | grew **5 → 0x10** bytes | offsets 0/2/3/4/6 `ldrb`/`strb`; 8 and 0xC `ldr`/`str`, 0xC compared with `movle` ⇒ signed. Object spans `0x02353560..0x0235356F` (next real object `DUNGEON_PRNG_STATE` at 0x02353570) |
+| `struct unk_0237C850` + `DUNGEON_FRAMES_PASSED` | `src/overlay_29_022E9FC0.c` | **new**, 0x38 bytes | `.space 0x14` at `0x0237C850` plus `ov29_0237C864` `.space 0x24`; every access uses the single pool word `=DUNGEON_FRAMES_PASSED` as base with displacements to 0x34 |
+
+**Fact, and it is real evidence rather than convenience:** the two nested member
+structs in `unk_02055E14` exist because MWCC picks a block copy's *shape* from
+the member type's alignment. The target's two copies are `ldm/stm {r0,r1,r2}` (12
+bytes, 4-aligned ⇒ a `u32[3]` member) and a post-incrementing `ldrh`/`strh` loop
+with a fused down-counter (24 bytes, 2-aligned ⇒ a `u16[12]` member).
+
+**Fact, the measurement behind that** (`LEDGER.md` §C.3): written as an explicit
+halfword loop, `sub_02055E14` scores **235 no matter how the loop is spelled** —
+24 declaration-order permutations, `for`/`while`/`do`, `const u16 *`, pointer-end
+tests, `unsigned int` for the counter, all 235. Replacing it with
+`dst->field_0x2a = *(struct unk_02055E14_2a *)mon->moves;` took **both**
+conversion functions from 235/225 to **0** in one edit.
+
+**Fact, and worth remembering:** at 235 the diff was **STRUCT 0** with a pure
+4-cycle register rotation. That looked exactly like a colouring problem and was
+not — it was the copy shape. *"STRUCT 0, pure rotation"* does **not** imply *"the
+C is right and only the allocator disagrees"*.
+
+**Measured and rejected** (`LEDGER.md` §C.5, all byte-inert, recorded so nobody
+re-runs them): typing `ground_monster::iq_skill_flags` as the existing
+`struct iq_skill_flags`; typing `team_member_table`'s three per-team counters as
+`s16[3]`/`u8[3]` instead of the `(&scalar)[t]` idiom the tree already uses.
+
+---
+
+# 7. Regions
+
+**Fact**, asserted per run by each group's `mktarget.py`, which resolves the `.s`
+text for all three regions and enumerates every delta rather than assuming one:
+
+| group | EUROPE | JAPAN | `#if` needed in the C |
+|---|---|---|---|
+| 022E4BB4 | byte-identical — the `.s` has **zero** preprocessor directives | byte-identical | **none** |
+| 022EA008 | byte-identical | 20 lines, every one a struct-field displacement | **none** |
+| main_02055894 | byte-identical — **zero** directives | byte-identical | **none** |
+| 0230D088 | byte-identical | 10 hunks: 1 different call, 1 displacement, 8 message ids | **one** `#ifdef JAPAN` call arm + six `MESSAGE_F2B`…`F30` macros |
+
+**Fact, the twelve message ids** in `src/overlay_29_0230BBAC.c` are six names ×
+two arms, and **both value sets were generated by the tooling out of each
+region's own resolved `.s` text** (`msgids_NORTH_AMERICA.h`, `msgids_JAPAN.h`),
+cross-checked against a constant JP shift of `+0x1567`. They are not typed by
+hand. They go into the `#ifdef JAPAN` block the file **already carries** for
+`MESSAGE_C53`…`MESSAGE_DC1`, in exactly that shape.
+
+**Fact, the one real region arm**: `CalcDamageFixed` — JAPAN's
+`DefenderAbilityIsActive__0230A940` takes 3 arguments where NA/EU take 4.
+`include/overlay_29_0230A994.h` already declares it with two prototypes under
+`#ifdef JAPAN` and `src/overlay_29_0230BBAC.c` already spells the call this way
+at four places, so this follows tree convention rather than inventing one.
+
+**Fact, a harness trap worth carrying forward** (`0230D088` STATUS §3): a scratch
+compiles with **no** `-D<REGION>`, so a candidate's own `#ifdef JAPAN` silently
+resolves to the NA arm even against a JAPAN context. `tools/ae.py` therefore
+appends `#define JAPAN 1` to the JAPAN context. Without that, a JP measurement is
+NA source scored against a JP target and **would have looked like a clean pass**.
+
+**Scratch-level region coverage is uneven, and this is the honest record:**
+
+* 022E4BB4 — NORTH_AMERICA scored on decomp.me, but all 26 additionally
+  **byte-compared at object level** against the real assembler in NA, EU **and**
+  JP (`tools/objcheck.sh`, with a negative control that correctly fails on a
+  one-word change).
+* 0230D088 — all 25 at 0 in NORTH_AMERICA; **11** of them re-measured at 0 in
+  JAPAN against a real JAPAN context.
+* 022EA008, main_02055894 — **NORTH_AMERICA only**. Their EU/JP case rests on the
+  target-level assertions above (EU byte-identical; every JP delta
+  header-driven) plus the three real builds — not on a score.
+
+The three matching ROMs are what settle all three regions. The scratch scores and
+the object comparison are the stronger evidence only where they exist.
+
+---
+
+# 8. Naming
+
+Everything stayed at placeholders. Per CLAUDE.md, decompiling is not a licence to
+name; every `sub_`/`ov29_` name is kept verbatim and **no name was ported from
+pmdsky-debug** (upstream was read for layout only).
+
+| new type | named for | why that name |
+|---|---|---|
+| `struct unk_02055E14` | the function `sub_02055E14` | argument-only — no global of its own; the lower-addressed of the two functions that take it wins |
+| `struct unk_02055E14_18`, `_2a` | its parent + the member's offset | **extension, flag it if you disagree**: CLAUDE.md gives `unk_<FUNC ADDR>` and `field_0x<off>` but says nothing about a nested member struct |
+| `struct unk_0237C850` | the global `DUNGEON_FRAMES_PASSED` at `0x0237C850` | a global beats a function, per the collision rule |
+
+Names that are *already in the tree* are used as the tree spells them —
+`PlayOffensiveStatDownEffect` and its nine siblings, `UnkMapRelatedFunc`,
+`AnimateWaterShadows`, `DisplayAnimatedNumbers`, `CalcDamageFixed`, the six
+`Swap*` functions. Those come from `pmd-sky`, not from pmdsky-debug.
+
+Two signature choices are **convention, not evidence**, and are recorded as such:
+the six `Swap*` third parameters are `s32 log_message` rather than `bool8`
+(the asm shows only `cmp r2, #0`; `s32` also measured 0, and three pre-existing
+in-tree declarations already say `s32`, so agreeing beat introducing a second
+disagreeing one); and `ov29_022EA370(s32 a, s32 b)` was taken from the five
+in-tree declarations rather than from a first guess — both score 0, and the
+tree's spelling removed two of §5a's conflicts.
+
+---
+
+# 9. Techniques this batch needed
+
+All appended to `docs/MATCHING_TIPS.md` with before/after snippets and measured
+scores. **That file lives in the workspace repo and is not part of this commit.**
+
+* **`default:` + `case 0:` on one label is what turns a small switch into a jump
+  table** — the four-point experiment from `ov29_022E5478`: 1025 / 190 / 210 /
+  **0**.
+* **`stmdb sp!, {r0, r1, r2, r3}` then ONE `ldr` back = a small struct parameter
+  BY VALUE** — the prologue reading that gave all ten `Play*Stat*Effect` bodies
+  score 0 first try, with the frame-offset rule for working out *which* argument
+  it is.
+* **A `const`-qualified pointer local splits a load CSE** — used twice
+  independently: `ov29_0230D7D4` reading `ov29_023535D4` twice (250 → **0**), and
+  `ov29_022EA80C` reading `DUNGEON_FRAMES_PASSED.field_0x28` twice (205–900 →
+  **0**). **Fact:** which of the two reads carries the qualifier is undecidable
+  from the bytes.
+* **An identity cast on an enum argument narrows the parameter's own load** —
+  writing `(enum type_id)attack_type` where `attack_type` is *already*
+  `enum type_id` turned `CalcDamageFixed`'s `ldr` into `ldrb`: 0 → **260**. The
+  cast is not a no-op to MWCC's width analysis.
+* **A 2-aligned struct member makes a block copy a halfword loop** — §6 above;
+  the previous entry covered only `u8` vs `u32` members.
+* **Switch case bodies are emitted in SOURCE order** — no new technique, but
+  `UnkMapRelatedFunc` is a good worked example: numeric case order scored 2695
+  (+15 instructions, which *looked* like a body defect); source order matching the
+  jump table's branch-target order (1, 0, 3, 6, 7, 2/4, 5, 13, 8, 9, 11, 999) plus
+  an early return scored **0**.
+* **Association matters when a pointer and a scaled index are added** —
+  `AnimateWaterShadows`: `ptr + (n*0x100 + 0x100)` is **0**, `(ptr + n*0x100) +
+  0x100` is 795. The left-associated form lets MWCC fold the shift into both
+  `add`s so `n*0x100` never becomes a common subexpression.
+* **Hoisting the *second* argument into a local can free `r0` for a call result**
+  — `ov29_022EA008`: `u8 room = tile->room;` before the call, 215 → **0**, after
+  eight other shapes (declaration order, ternary spellings, inverted `if`, a
+  `gen_info` local) all failed to move it.
+
+**Fact, held throughout all four groups:** `mwcc_30_137` and the preset-101 flag
+string, **never varied**; no `volatile`, no inline `asm`, no intrinsic, no pragma,
+no dead statement, in any candidate or as a diagnostic.
+
+---
+
+# 10. Open questions for a reviewer
+
+* **The `struct ground_monster` retype is the item to decide.** The harness
+  measured it **byte-equivalent** to the pointer-pun alternative and its STATUS
+  recommends *not* touching a canonical shared header; the landing made the
+  change anyway on a read-the-load-width argument. Both are defensible. It also
+  **deviates from pmdsky-debug**, which declares these members `s8`/`u16`.
+* **`struct team_member::iq` was left `u16`**, so the commit deletes one cast
+  (`&monster->iq`) and adds another (`(s16 *)&member->iq`) four lines apart in
+  the same file. Whether `team_member`'s copy of these fields wants the same
+  retype **was not checked** — no function in this batch reads them.
+* **`ApplyGummiBoostsGroundMode`'s prototype is now pinned by a caller's
+  neighbour, not by its own body.** It is still assembly. Whoever decompiles it
+  should verify `s16 *iq` against the callee's own loads.
+* **Five stale declarations named by the wips were NOT fixed here**, because
+  their files are out of the include closure and so are silent rather than fatal.
+  All five are still in the tree (verified):
+  * `src/main_02058FA4.c:7` — `void sub_02055F04(struct ground_monster *, const u8 *src);`
+  * `src/main_0205BBFC.c:7` — `extern void sub_02055F04(struct ground_monster *p, u32 a);`
+    (and it already contradicted `main_02058FA4.c`)
+  * `include/overlay_24.h:19` — `struct overlay_24_unk1E8_sub* sub_02055DD0(s32, void*, void*, u16*, s32);`
+    — wrong return type, and the 5th parameter is a **byte** (`ldrb [sp,#0x58]`), not `s32`
+  * `src/overlay_11_02307334.c:109` — `extern s32 StrcmpMonsterName(u8 *name, s16 monster_id);`
+    — the asm ends `and r0, r0, #0xff`, i.e. an 8-bit return
+  * `src/overlay_29_022E869C.c:11` — `extern u32 DUNGEON_FRAMES_PASSED;` where the
+    object is **0x38 bytes**. That file uses only `DUNGEON_FRAMES_PASSED & 2`,
+    i.e. field 0, so its emitted code is right **by accident**.
+* **The 24 type-identical `extern`s of the `Play*` family in
+  `src/move_orb_effects.c` (and one each in `src/overlay_29_0230558C.c` and
+  `src/overlay_29_02311010.c`) were left in place.** They agree with the
+  definitions, and replacing them with an include was measured byte-neutral in
+  all three regions — the minimal diff was taken instead. CLAUDE.md's "don't
+  leave two declarations of one function" rule says they should go.
+* **`include/main_02056294.h` now includes `main_02055770.h`, and eight
+  translation units include it** — `struct unk_02055E14` and 19 new prototypes
+  reach all eight. The wip's landing plan assumed everything merged into
+  `main_02055770.h`, which only **two** files reach. That widening is a direct
+  consequence of the §3 split, and it is why several of §5's fixes were
+  mandatory rather than tidy-up.
+* **`CalcDamageFixedNoCategory`'s 3rd parameter is `s16` here, and that is not
+  decided by this file's bytes** — it is a pure `r2` pass-through. `s16` was
+  adopted to agree with the two pre-existing externs. **This commit is where that
+  `s16` became a header declaration**; a later commit (`50ef900c`) widens it to
+  `s32`, which is the shape at the branch tip. A reviewer reading only this
+  commit will see the narrower one.
+* **`ov29_022ED800`'s first argument** is spelled
+  `dungeon != NULL ? &dungeon->gen_info : NULL`. It matches byte for byte, but it
+  is an odd thing for a human to write — and the third argument
+  (`&dungeon->display_data`) is computed **unconditionally** from the same
+  possibly-NULL pointer. An in-tree `static inline` accessor would be more
+  plausible source; none was found. The bytes do not distinguish them.
+* **Four function signatures are inferred from a function-pointer table, not
+  read** — `ov29_0230D704`/`…D70C`/`…D738`/`…D76C` are stored as entries of one
+  array at `asm/overlay_29_data_023534E0.s:114+` (stride 0x10), so they must share
+  a type; only `…D76C` actually uses `r0`/`r1`. `ov29_0230D704` is
+  `mov r0, #0; bx lr` and constrains nothing. Unused parameters are invisible to
+  the bytes, so this costs nothing if it is wrong — but it is an inference.
+* **`UnkMapRelatedFunc`'s `case 999:`** is read as an *empty* far case (the
+  `ldr r0, =0x3E7 / cmp r4, r0 / b <end>` after the table is a comparison whose
+  result is discarded), and cases 10 and 12 as absent from the source entirely.
+  Both are inferences from the shape, not from a semantic.
+* **Is `DUNGEON_FRAMES_PASSED` really one 0x38-byte object?** The bss splitter
+  emits a `.global` at every address any literal pool names, so `ov29_0237C864`
+  being a separate label is not evidence of a separate object. The evidence *for*
+  one object is that `src/overlay_29_022E9FC0.c` reaches offset 0x34 from the
+  single pool word. Counter-evidence would be another function using
+  `ov29_0237C864` as its own base — worth checking when
+  `asm/overlay_29_022ED888.s` and `asm/overlay_29_023456BC.s` are decompiled.
+  Offsets 0x0C–0x0F and 0x14–0x1B are untouched here and left as bare `u8`s so
+  the struct claims no width it has not measured.
+* **`overlay_29_022E4B8C.h` now includes `overlay_29_02308FBC.h`**, which also
+  declares `EntityIsValid__02308FBC`, `ApplyDamageAndEffects` and `ApplyDamage`.
+  All four current consumers were compiled with the include added and none
+  collided — measured, not assumed. A future consumer with its own call-site
+  `extern` of `ApplyDamage` would.
+* **`sub_02053F10`'s third parameter (`s32`)** is only `cmp r2, #0` in the callee
+  and only the literal `0` at this call site. Could be `u8`/`bool8`. Whoever
+  decompiles it should settle it, and the provisional prototype should then move
+  into that function's own header.
+* **`sub_02051E20`'s first parameter (`s16`)** is chosen by symmetry with the
+  second, not by evidence — the call site feeds it an `ldrsh` field, which
+  compiles identically under `s16` and `s32`.
+* **The `#ifdef JAPAN` macro names carry the NA literal and nothing else**
+  (`MESSAGE_F2B` = 0xF2B), deliberately, since the message text is unknown.
+* **Both matching mechanisms offered in §4 and §5c are inference.** The scores
+  are facts; the explanations — incomplete array type keeping a load live,
+  `-enum min` splitting `ldrb` from `ldr` by use — are readings consistent with
+  every measurement, not results proven against compiler internals.

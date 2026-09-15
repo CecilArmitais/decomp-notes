@@ -1,0 +1,616 @@
+# `bff2fa3b` — Decompile 17 more callees; clear two asm files; enum item_id gains ITEM_INVALID
+
+| | |
+|---|---|
+| **Commit** | `bff2fa3b` (as of writing — renamed if amended or rebased) |
+| **Branch** | `decomp-continued`, on top of `636bf2e5`, below `146982f0` |
+| **Verified** | all three ROMs per the commit message: `pmdsky.us.nds: OK`, `pmdsky.eu.nds: OK`, `pmdsky.jp.nds: OK` |
+
+> **Unverified AI-authored reasoning.** Not part of the decompilation, never
+> merged, not authoritative. The PR diff and the matching build are the sources
+> of truth — see [the README](../README.md). Claims are labelled **fact** (read
+> off the asm/data, measured by the harness, or from an existing in-tree header)
+> or **inference**.
+
+---
+
+Two whole `.s` files clear, from two unrelated parts of the ROM — eight dungeon
+overlay functions and nine ARM9 boot/task functions. Seventeen functions at
+score 0.
+
+**The thing to actually review here is one line in `include/item.h`.** This
+commit adds `ITEM_INVALID = -1` to a **shared enum**, which changes the
+signedness of every load of an `enum item_id`-typed field across the whole tree
+— and it does so for the benefit of a function that **does not land in this
+commit**. §2 is the whole argument. Everything else is ordinary landing work.
+
+The second item worth a reviewer's time is §3: `asm/main_02003328.s` lands as
+**two** objects rather than one, because a single translation unit makes MWCC
+inline one of its own functions into another.
+
+---
+
+## 1. What landed, and where
+
+**Fact**, read out of the diff and `main.lsf`.
+
+| asm file (deleted) | fns | destination |
+|---|---|---|
+| `asm/overlay_29_022FB678.s` | 8 | all eight merged backwards into **`src/dungeon_logic_4.c`**, in address order, after the existing `HasLowHealth`; prototypes into `include/dungeon_logic_4.h` |
+| `asm/main_02003328.s` | 9 | seven merged into **`src/main_0200330C.c`**; `GetTime` + `DisableAllInterrupts` into a **new** `src/main_020037B4.c` (+ `include/main_020037B4.h`) — see §3 |
+
+`main.lsf` loses `Object asm/overlay_29_022FB678.o` outright and swaps
+`Object asm/main_02003328.o` → `Object src/main_020037B4.o`. Two
+`asm/include/*.inc` files go with the two `.s` files. Net: **one new object, two
+asm objects gone, one new `.c`, one new `.h`** *(fact)*.
+
+Each `.s` contained exactly those functions and nothing else *(fact — both
+groups' `tools/mktarget.py` walks the file address by address and the walk
+closes exactly on the next object's first symbol; the 022FB678 walk cross-checks
+8/8 entry addresses against the `.s`'s own `<name>: ; 0xXXXXXXXX` label
+comments, the main_02003328 walk ends on `sub_0200383C` after 296 instructions +
+29 pool words)*.
+
+Frozen pre-landing inputs, both taken from `pmd-sky` at `636bf2e5` *(fact,
+sha1'd in each `STATUS.md` header)*:
+`wip/overlay_29_022FB678_all/asm_src/overlay_29_022FB678.s` =
+`681752fcc872a6ff4a6b8226541665b28d272d1e`;
+`wip/main_02003328_all/asm_src/main_02003328.s` =
+`e4ef6f659e7307d99fa3f4b557c80ac9e452a7a4`.
+
+### Scores
+
+**Fact**, from the two `STATUS.md` files:
+
+| group | NA | EU | JP |
+|---|---|---|---|
+| `overlay_29_022FB678` (8 fns) | 8/8 at **0** | 8/8 at **0** | 8/8 at **0** — 24 scratches, one `tools/ae.py all all` run |
+| `main_02003328` (9 fns) | 9/9 at **0** | 9/9 at **0** | `TaskProcBoot` re-run at **0**; the other eight *proved identical inputs* |
+
+That last cell is a real distinction and the group states it as one: the `.s`
+carries **zero** preprocessor directives and `ctx_base_JAPAN.h` is byte-identical
+to `ctx_base_NORTH_AMERICA.h` (`cmp -s`), so a JAPAN run **is** the NA run.
+*(Fact: the two assertions. Inference: that therefore no JP run was needed —
+sound, and one was done anyway as a live check.)* The three matching builds are
+what actually settle all three regions.
+
+Flags: `mwcc_30_137` + the preset-101 string, fixed in each group's
+`tools/probe.py`, **never varied** *(fact, per both STATUS files)*. The
+main_02003328 group additionally checked that `asm/main_02003328.o` is an ARM9
+**main** object in `main.lsf`, so it is built by `MW_COMPILE_SRC` (`-O4,s`) and
+not `MW_COMPILE_LIB` (`-O4,p -enum int`) — `Makefile:7-8`, `common.mk:134,149-150`
+*(fact)*. That is the one place in this commit where the flag question could
+have bitten, and it was looked up rather than assumed.
+
+---
+
+## 2. SHARED ENUM CHANGE: `enum item_id` gains `ITEM_INVALID = -1`
+
+One line, `include/item.h:9`. It is the highest-blast-radius change in the
+commit and it deserves the most scrutiny.
+
+### The mechanism
+
+**Fact.** Under `-enum min`, an enum with no negative enumerator is **unsigned**.
+mwcc takes both the **width and the signedness** of a load from the *declared
+type*, so a 2-byte field of an unsigned enum type compiles to `ldrh`. Where the
+target has `ldrsh`, no cast at the use site can change it — the load has already
+happened.
+
+**Fact, the measurement that forced it** (`wip/overlay_29_0230F02C_all/STATUS.md`
+§3, history block). `AuraBowIsActive` scored 200 against the tree as it stood,
+with exactly **one** differing row:
+
+```
+target:  50: ldrsh r1, [r4, #0x66]      ; the argument to HasHeldItem
+mine:    50: ldrh  r1, [r4, #0x66]
+```
+
+`monster->held_item.id` is `s16`; `include/dungeon_items.h` declares
+`bool8 HasHeldItem(struct entity *, enum item_id item_id)`, so the load's sign
+is decided by the **parameter** type, and `enum item_id` ran `0 … 1400` with no
+negative enumerator.
+
+**Fact, what was falsified first** — all measured, all still `ldrh`: an `(s32)`
+cast at the call site; an `s32` local; an `s16` local; an `enum item_id` local.
+This is `docs/MATCHING_TIPS.md` → *"`ldrsh` vs `ldrh` on an enum field → the enum
+needs a negative enumerator"*, and the tips entry's claim that a cast cannot fix
+it held.
+
+**Fact, the confirmed fix.** Adding one negative enumerator to a **copy of the
+generated context** (`item.h` itself untouched at that point) made the function
+score **0, byte-identical**, `ldrsh` at 0x50 — local scratch `bdM3t`.
+
+### Width: the range still fits two bytes
+
+**Fact.** `-enum min` sizes an enum from its full enumerator range.
+`include/item.h:1410` is `NUM_ITEM_IDS = 1400`, so the range becomes
+`-1 … 1400` — still two bytes signed. **The width does not move; only the
+signedness of every load does.**
+
+**A small correction to the commit message**, stated because it is in the
+permanent record: the message says *"Range becomes -1..1399"*. `NUM_ITEM_IDS =
+1400` is itself an enumerator, so the top of the range is 1400, not 1399
+*(fact, `include/item.h:1410`)*. Immaterial — both fit `s16` — but the message
+is off by one.
+
+### Blast radius, and what was and was not verified
+
+**Fact, the census** (`wip/overlay_29_0230F02C_all/STATUS.md` §3):
+
+* Signedness changes only **reads of `enum item_id`-typed struct fields** and
+  **conversions into an `enum item_id` parameter from another type**. Stores are
+  unaffected (`strh` either way).
+* The eight `enum item_id` fields in `include/` are `dungeon::guaranteed_item_id`,
+  `monster::previous_held_item_id`, `…::item_to_retrieve` / `item_to_deliver` /
+  `special_target_item`, `mission::item_wanted` / `item_reward`,
+  `natural_gift_data::item_id`. Every read of any of them in `src/` already goes
+  through a `*(s16 *)&…` cast (`src/main_0205C73C.c:131`,
+  `src/main_0205D11C.c:612,620,621,622,679`) or is a store or an address-of — all
+  sign-neutral.
+* A census of call sites of every function taking an `enum item_id` parameter
+  (`HasHeldItem`, the `ItemIsActive__*` family,
+  `FindDirectionOfAdjacentMonsterWithItem`, `GetDamageSource`, the `DoMove*`
+  family) found **no** argument that is not either an `ITEM_*` enumerator or an
+  already-`enum item_id` value.
+
+**Fact (as claimed in the commit message, which I did not re-run):** the
+enumerator was added **alone, nothing else changed**, and all three ROMs still
+matched. That is exactly the isolation test `MATCHING_TIPS.md` demands for this
+change, and it is the strongest evidence in this section — a grep census can
+miss a site; a byte-for-byte build of three ROMs cannot.
+
+*(Note for the record: `wip/overlay_29_0230F02C_all/STATUS.md` §3's closing
+parenthetical, written later, says the isolated single-change build "has still
+not been run" — it was reasoning from the combined build it could see. The
+commit message says it was run in isolation. **I cannot reconcile these from the
+artefacts**; the commit message is the contemporaneous account of the landing and
+the STATUS note is a downstream observer. A reviewer who wants certainty can
+re-run it: revert the one line, build, restore, build.)*
+
+### The enumerator has no user — on purpose, and there is precedent
+
+**Fact.** `git grep ITEM_INVALID` over `src/` and `include/` at `bff2fa3b`
+returns exactly one hit: its own definition. Still true at `146982f0`. It exists
+**solely** to make the enum signed.
+
+**Fact.** That is precisely how the tree's two existing sentinels behave:
+`MONSTER_INVALID = -1` (`include/enums.h:1415`) and `ENTITY_NONE` each appear
+**exactly once** in `src/` + `include/` — their own definitions, no users. The
+placement and the `_INVALID` spelling were copied from `MONSTER_INVALID`.
+**Inference:** that those two are there for the same signedness reason. It is
+consistent with everything, but I did not find a record proving the intent behind
+either.
+
+### It lands one commit before its consumer
+
+**Fact.** At `bff2fa3b`, `AuraBowIsActive` is still assembly —
+`src/overlay_29_0230BBAC.c:43` carries a call-site `extern` for it. The function
+itself lands in **`146982f0`**, the next commit.
+
+So `bff2fa3b` is a commit whose shared-enum change is **byte-neutral with respect
+to every function it contains** and whose justification lives in the next commit.
+That is defensible (it is exactly what makes the isolation build meaningful) but
+a reviewer reading `bff2fa3b` alone will not find the `ldrsh` it exists for.
+**This note is the link between the two.**
+
+**Fact, and easy to confuse with the above:** the landed `AuraBowIsActive` in
+`146982f0` reads
+`return HasHeldItem(entity, (enum item_id)monster->held_item.id);` — that cast is
+there for `-W error` (the `short` → `enum item_id` conversion becomes a
+diagnostic once the enum is signed), **not** for codegen. The codegen was already
+right once the enumerator existed, and a `(s32)` cast at the same site was
+measured *not* to fix the `ldrh`/`ldrsh` row.
+
+### The alternative nobody has tested
+
+**Declaring `struct item::id` as `enum item_id` rather than `s16`**
+(`include/item.h:1628`) would remove the conversion and the cast with it.
+**Untested**, and a wider shared-type change than this one: `struct item` is used
+everywhere items are; `struct item_volatile` (`include/item.h:1637`) is a
+**parallel** declaration of the same layout (`volatile s16 id;`) that exists to
+match `AiDecideUseItem` and would have to move with it, or the two disagree.
+Recorded because it is the obvious next question, not as a recommendation.
+
+---
+
+## 3. `asm/main_02003328.s` lands as TWO objects — and it was measured, not feared
+
+**Fact.** At `-O4,s` MWCC inlines a small callee into a caller when it has
+already seen the body (`docs/MATCHING_TIPS.md` → *`-O4,s` inlines small callees;
+`-O4,p` does not*). `GetTime` calls `EnableAllInterrupts`, which sits **earlier**
+in address order, so in one translation unit MWCC has already compiled it.
+
+**Fact, the measurement.** With all nine bodies in one scratch source, `GetTime`'s
+two `bl EnableAllInterrupts` become the inlined body:
+
+```
+target 4a4:  bl      EnableAllInterrupts     candidate  18:  ldrheq  r0, [r2]
+                                                        1c:  moveq   r1, #1
+                                                        20:  strheq  r1, [r2]
+```
+
+**Fact, the same rule seen from the other side:** `DisableAllInterrupts` is *not*
+inlined in that run, because it is defined **after** `GetTime`. And
+`TaskProcBoot` is safe for the same reason — it calls `EnableAllInterrupts`,
+which is defined after it.
+
+Hence the split:
+
+| object | functions |
+|---|---|
+| `src/main_0200330C.o` (existing, grows) | `TaskProcBoot`, `EnableAllInterrupts`, `sub_02003620`, `sub_02003704`, `sub_02003754`, `sub_02003780`, `sub_020037A4` |
+| `src/main_020037B4.o` (**new**) | `GetTime`, `DisableAllInterrupts` |
+
+**Fact:** `extract_function.py` does not produce this on its own — all nine sit
+at the head of the `.s`, so it merges every one into `src/main_0200330C.c`; the
+second file was made by hand.
+
+**Open question the group raises against itself:** any boundary in
+`(0x02003608, 0x020037B4]` removes the inline. `GetTime` is the natural place;
+`sub_02003620` would work too and would give a larger second file. **No
+measurement separates them** — both remove the inline and both produce the same
+bytes — so the choice is taste, recorded rather than hidden.
+
+### Two byte-identical spellings deliberately not shipped
+
+Both are one-line swaps a reviewer may simply prefer; both were measured
+*(fact)*, and neither changes a ROM byte.
+
+* **`_020AEFB4` / `_020AEFC8` as members of `_020AEF7C` rather than as their own
+  symbols.** `0x38 + 0x14 + 0x14 = 0x60` and `0x020AEF7C + 0x60 = 0x020AEFDC`
+  exactly, and the two labels are referenced from **nowhere else in the tree**
+  *(fact, grep + the sizes measured from the gaps to the next `.global`)*, so the
+  three data labels are almost certainly **one C object** *(inference)*. Writing
+  it as `struct unk_020AEFB4 field_0x38[2];` and passing
+  `&_020AEF7C.field_0x38[0]` is byte-identical in the ROM but makes the scratch
+  diff read `.word _020AEF7C+0x38` against the target's `.word _020AEFB4`, so it
+  **cannot be scored at 0**. The form shipped is the one that reproduces the `.s`
+  verbatim.
+* **`HW_INTR_CHECK_BUF` instead of `OS_IRQTable`** in `sub_02003704`. Measured to
+  produce the identical instruction stream; the only differing row is the pool
+  word (`.word SDK_AUTOLOAD_DTCM_START` vs `.word OS_IRQTable`) — **same address,
+  same ROM bytes**. `OS_IRQTable` shipped because it scores 0 and because both
+  `asm/main_02003328.s` and `lib/NitroSDK/asm/os_alarm.s` spell it that way.
+
+Note the general shape: **the scratch score prefers the spelling that matches the
+`.s`'s symbol choice, which is not always the spelling the original author most
+plausibly wrote.** Worth remembering when a "0" is used as an argument about
+source form rather than about bytes.
+
+### `volatile` here is forced by the output, not a guess
+
+**Fact.** `struct unk_020AEF7C::field_0x1c` and `::field_0x20` are `volatile`
+because without it MWCC CSEs `GetTime`'s two reads of `field_0x1c` into one (the
+target loads it twice with no call between), and it sinks `sub_02003704`'s
+`field_0x20` increment above the `OS_IRQTable` RMW. **Fact:** `field_0x34` is
+demonstrably *not* volatile — `TaskProcBoot` reuses the value returned by
+`sub_02002580`. **Fact:** `field_0x28`/`field_0x30` are never read twice in one
+function, so **nothing measures them**; they are left non-volatile, which is an
+unforced choice.
+
+Other size facts behind the new types, all measured from the gap to the next
+`.global` or from a callee's own writes *(fact)*: `_020AEF7C` 0x38,
+`_020AEFB4`/`_020AEFC8` 0x14 each, `_020AEFDC` 0x24 (`OSMutex` 0x18 + 12 —
+closes exactly), `_020AF000`/`_020AF028`/`_020AF050` 0x28 each (4 + 4 +
+`OSMessageQueue` 0x20 — closes exactly), `_020AF078`/`_020AF154` 0xDC each,
+`_0229B220` 0x28, `_0229B248`/`_0229F248` 0x4000 each. `_020924D8` is the bytes
+`"task proc boot\n\0"`. `0x3B792FB2` is exactly `(float)(1.0f/263.0f)`, and 263
+is the DS's scanlines per frame.
+
+**Inference, flagged:** `struct unk_0229B220` is typed `u8[0x28]` — the size is
+measured and `OS_SetPeriodicVAlarm` writes through +0x24, but the field layout
+was never worked out because nothing in this group reads it. It is the SDK's
+`OSVAlarm`; this tree has no VAlarm header.
+
+---
+
+## 4. Shared *header* change: `include/main_0200330C.h` is included by 21 files
+
+**Fact.** The commit adds to that header: a forward declaration of
+`struct unk_020027E8`, two new struct definitions (`struct unk_020AEFB4`,
+`struct unk_020AEF7C`), `extern struct unk_020AEF7C _020AEF7C;`, and seven
+prototypes. **Fact:** 21 `.c` files include it (22 files total, counting the new
+`include/main_020037B4.h`).
+
+It is **purely additive** — no existing declaration in that header changed — and
+all three builds pass, so nothing it now injects collides in any of those 21
+translation units *(fact)*.
+
+**Fact, deliberately kept out of the header:** `#include "main_020027E8.h"` and
+`<debug.h>` both stayed in the `.c`. The first would drag the complete
+`struct unk_020027E8` into 21 TUs for no reason (a forward declaration suffices —
+it is only ever used as a pointer here); the second would collide with
+`src/main_02000C6C.c`'s own `extern void Debug_Print0(u32*, u32, u32);` the
+moment that file gained this header, which it does in this very commit.
+
+### `_020AEF7C` now has three contradicting declarations in the tree
+
+**Fact**, still true at `HEAD`:
+
+| site | declaration |
+|---|---|
+| `include/main_0200330C.h` (new) | `extern struct unk_020AEF7C _020AEF7C;` |
+| `src/main_0200383C.c:3` | `extern vu8 _020AEF7C[];` |
+| `src/main_02003D2C.c:7` | `extern u8 _020AEF7C[];` |
+
+**Fact:** neither of those two `.c` files includes `main_0200330C.h` (checked
+directly and against the includer list), so there is no same-TU conflict and the
+build cannot see the disagreement — the same blind spot CLAUDE.md's landing
+checklist names. The two array forms are **pre-existing**, not introduced here,
+and both files index the object as bytes (`_020AEF7C[0xd]`, `_020AEF7C[3]`),
+which is byte-compatible with the struct. Left alone as out of scope; it is a
+follow-up, and it is listed in §7.
+
+Same class, also pre-existing and untouched *(fact, from the group's census)*:
+`src/main_0200383C.c:4,5` declare `extern void *_020AF028;` / `_020AF000` for
+what is a 0x28-byte object; `src/main_0200238C.c:17` and `src/main_02008194.c:16`
+declare `extern void *sub_02002580(void);` against
+`include/main_020027E8.h`'s `struct unk_020027E8 *sub_02002580(void)`.
+
+---
+
+## 5. The declaration cleanup — seven lines, two of them wrong
+
+Call-site-derived `extern`s in other `.c` files were replaced by an `#include` of
+the header that now owns each function.
+
+**Fact, counted from the diff**: **seven** declaration lines removed across
+**six** files, with **four** `#include` lines added.
+
+| file:line (pre-landing) | text | verdict |
+|---|---|---|
+| `src/overlay_29_02306728.c:14` | `extern void ov29_022FB984(struct entity *entity);` | **WRONG return type** — returns `bool8` |
+| `src/overlay_29_02308FBC.c:139` | `extern int ov29_022FB98C();` | **WRONG return type AND unprototyped** — returns nothing, takes two `struct entity *` |
+| `src/overlay_29_02311010.c:79` | `extern void ov29_022FB718(struct entity *entity);` | correct, redundant |
+| `src/overlay_29_0231CBC8.c:39` | `extern void ov29_022FB920(bool8 a);` | correct, redundant |
+| `src/overlay_29_0231CBC8.c:86` | `extern bool8 ov29_022FB9BC(struct entity *entity);` | correct, redundant |
+| `src/main_02000C6C.c:34` | `extern void TaskProcBoot();` | unprototyped (empty parens, not `(void)`) |
+| `src/overlay_11_02307334.c:214` | `extern s32 sub_020037A4(void);` | correct, redundant |
+
+**A second small correction to the commit message**: it says *"Five call-site
+declarations are replaced"*. Five is the count from the `022FB678` group's census
+alone; the diff also removes the two `main_02003328` ones (`TaskProcBoot`,
+`sub_020037A4`), which that paragraph does not mention. Seven is the number in the
+diff *(fact)*.
+
+### Two of the seven were same-TU, so the build **could** have caught one
+
+**Fact:** `src/overlay_29_02308FBC.c` already included `dungeon_logic_4.h` at
+`636bf2e5` (line 39), and `src/overlay_11_02307334.c` already included
+`main_0200330C.h` (line 34). So once those headers gained the prototypes, both
+old `extern`s sat in the **same translation unit** as the new declaration.
+
+* `ov29_022FB98C`: `int` vs `void` return in one TU is a **hard compile error** —
+  that deletion was mandatory, not hygiene.
+* `sub_020037A4`: types agree, so it would have been a legal redundant
+  redeclaration. Deleted as a duplicate.
+
+The other five are the genuinely invisible kind: **different translation units,
+so the compiler never sees the disagreement and the ROM still matches with a
+wrong prototype sitting in the tree** *(fact — it is why the two wrong ones
+survived until someone grepped)*.
+
+**Fact, how they were found:** both groups ran `grep -rn "<name>" src/ include/`
+for every landed name and wrote the complete census into their `STATUS.md`
+(022FB678 §7, main_02003328 §4) *before* landing. The next commit (`146982f0`)
+discovered that a line-oriented grep **misses declarations that wrap across two
+lines** and found eight wrong ones that way. **Not checked here:** whether any of
+this commit's seventeen names has a *wrapped* declaration elsewhere that the
+line-oriented census missed. The two groups' censuses were line-oriented.
+
+### One leftover in the diff
+
+**Fact.** Deleting `src/overlay_29_0231CBC8.c:39` left an **empty region guard**
+behind, still present at `HEAD` (`src/overlay_29_0231CBC8.c:42-43`):
+
+```c
+#ifdef EUROPE
+#endif
+```
+
+Byte-neutral and harmless; it should simply be deleted. Flagged rather than
+fixed, because this note does not touch `pmd-sky`.
+
+---
+
+## 6. Regions
+
+**Fact**, asserted per run by each group's `mktarget.py`, which resolves the
+target per region and enumerates every delta rather than assuming one:
+
+| group | EUROPE | JAPAN | `#if` needed in the C |
+|---|---|---|---|
+| `main_02003328` | byte-identical to NA | byte-identical to NA (the `.s` has **zero** preprocessor directives) | **none** |
+| `overlay_29_022FB678` | **one real arm** — `ov29_022FB920` has a different body, 20 insn vs 24 | 5 arms, all header-driven struct offsets | **one** `#ifdef EUROPE`, landed verbatim |
+
+Emitted words per region for the 022FB678 group: **NA 218, EU 214, JP 218**
+*(fact)*.
+
+**Fact, the EUROPE arm as landed** (`src/dungeon_logic_4.c:144`):
+
+```c
+#ifdef EUROPE
+    if (UpdateMapSurveyorFlag() && a)
+        UpdateMinimap();
+#else
+    if (TeamMemberHasEnabledIqSkill(IQ_MAP_SURVEYOR))
+        DUNGEON_PTR[0]->display_data.map_surveyor = TRUE;
+    else
+        DUNGEON_PTR[0]->display_data.map_surveyor = FALSE;
+#endif
+```
+
+**Fact, why the five JAPAN arms need no `#ifdef`:** `dungeon_mode.h` already
+drops `monster::in_action` and `monster::field_0x10d..f` under `#ifndef JAPAN`,
+which is exactly the 4 bytes that move `monster::moves` from 0x124 to 0x120 —
+the JP arms spell that shift and the headers already produce it. Confirmed by the
+JP scratches scoring 0 against the JP-generated context.
+
+**Methodological finding, and it nearly cost a broken build.** The assignment
+given to the 022FB678 group stated that *"no function in this group carries a
+region arm"* and told it to generate the NORTH_AMERICA context only. **That was
+false** — the `.s` carries six arms including a whole different EUROPE body — and
+acting on it would have shipped a broken EU build *(fact; `STATUS.md` §0 opens
+with it)*. The group generated all three contexts and made its tooling **assert**
+the region structure instead of trusting either the assignment or its own
+resolver. **Do not let a task description stand in for reading the `.s`.**
+
+One address in the 022FB678 walk is derived rather than ground truth: the final
+end address `0x022FB9E0` *(fact: the walk closes on it; **inference**: that it is
+`FindMoveOnMonster`'s entry, from `0x022FBA54 - 0x022FB9E0 = 0x74`)*. Seven of
+eight end addresses are the next function's own label comment. The EU walk is
+anchored independently by the EU-only label `_022FC33C_EU`, and the one label it
+cannot check is declared and asserted to be the only waived one.
+
+---
+
+## 7. Naming
+
+Everything stayed at placeholders. Per CLAUDE.md, decompiling is not a licence to
+name; nothing was ported from pmdsky-debug.
+
+| new type | named for | why that name |
+|---|---|---|
+| `struct unk_020AEF7C` | the **global** `_020AEF7C` | a global names the type |
+| `struct unk_020AEFB4` | the **global** `_020AEFB4` | same |
+| `struct unk_020AEFDC`, `struct unk_020AF000`, `struct unk_0229B220` | their globals | same |
+| `struct unk_02006C1C` | the function `GetReleasedStylus` (`0x02006C1C`) | it has no global; named for the function that takes it |
+
+`ITEM_INVALID` is the **one** name this commit asserts, and it is copied from
+`MONSTER_INVALID`'s spelling in the same tree rather than invented *(fact)*. Nine
+functions keep `sub_<addr>` / `ov29_<addr>`; the eight that carry real names
+(`TaskProcBoot`, `EnableAllInterrupts`, `DisableAllInterrupts`, `GetTime`,
+`AreEntitiesAdjacent`, `IsHero`, …) had them already.
+
+**Signatures worth a second look** *(each is inference from the asm, stated as
+such in the STATUS files)*:
+
+* `GetTime` returns **`float`** — `_fflt`/`_fmul`/`_fadd` under `-fp soft`.
+* `EnableAllInterrupts` / `DisableAllInterrupts` return the **previous**
+  `reg_OS_IME`. `u16` and `u32` are indistinguishable in the output (`ldrh`
+  zero-extends); `u16` is the register's own width, and **no caller in the tree
+  uses the value**.
+* `sub_02003620` / `sub_02003780` are thread entry points (their addresses are
+  the first word of `_020AEFB4` / `_020AEFC8`, which `sub_02002778` hands to
+  `OS_CreateThread`), and `sub_02003754` is the periodic VAlarm handler passed to
+  `OS_SetPeriodicVAlarm` — hence `void (*)(void *)`. All three ignore the
+  argument.
+* `u8 (*field_0x10)(void)` / `field_0x18`: the **return width is a fact**
+  (`blx sl; strb r0,[r4,#6]`); the **emptiness of the parameter list is not** —
+  nothing in this group passes an argument, but a callee could take one.
+
+Seven provisional prototypes declared from call sites live at file scope in
+`src/dungeon_logic_4.c` (`ov29_02348100`, `ResetTypeChanges`,
+`TeamMemberHasEnabledIqSkill`, `UpdateMapSurveyorFlag`, `UpdateMinimap`,
+`DisplayAnimatedNumbers`, `PlayMissSfx__022E611C`). **Fact:** none of the seven
+has a header anywhere in the tree. Each is justified from the callee's own asm in
+`STATUS.md` §5; **expect to delete them when each callee lands**, per CLAUDE.md's
+rule about provisional declarations. `DisplayAnimatedNumbers`'s signature is
+copied verbatim from `src/overlay_29_02308FBC.c:110` — the tree's own reading,
+not a new one.
+
+`extern const s16 _020A1870;` is typed from the **data**, not from what compiles
+*(fact: `asm/main_rodata_0209CECC.s:2423`, four bytes `0A 00 00 00`, in a run of
+4-byte rodata scalars whose named neighbours are already `extern const s16` /
+`extern s16` elsewhere; all three of its uses in the tree load it with `ldrsh`)*.
+**Inference:** that `const` is right — it is rodata, but nothing forces the
+qualifier and dropping it is byte-identical.
+
+---
+
+## 8. Two matching techniques confirmed here that are **not** yet in `docs/MATCHING_TIPS.md`
+
+Both are recorded only in `wip/overlay_29_022FB678_all/STATUS.md` §10. The group
+deliberately did not append them, because ~20 agents were running against the
+workspace concurrently and a shared append is a merge hazard. **Fact, checked
+while writing this note:** neither is in `docs/MATCHING_TIPS.md` today. They are
+workspace-repo items, not `pmd-sky` — nothing in this PR depends on them — but
+they are real results and they will be lost if nobody moves them.
+
+* **(a) Bind the compared field to a local to RESTORE a predicated early
+  return.** The mirror image of the existing *"bind `&ARRAY[i]` to a pointer
+  local"* entry: there the bind *stops* if-conversion, here it *starts* it.
+  Symptom: the target predicates a short early return (`moveq r0, #0` /
+  `popeq {r4, pc}`) and you emit a `beq` to an out-of-line block. Confirmed on
+  `IsHero`; five other phrasings all scored an identical 500.
+* **(b) Callee-saved colouring follows DECLARATION order, so declare the
+  loop-body pointer before the loop counter.** Symptom: pure `COLOUR` diff, a
+  cyclic permutation of `r6`/`r7`/`r8`. On `ov29_022FB718` hoisting
+  `struct move *move;` above `s16 i;` at function scope took **60 → 0** with no
+  other change; hoisting only the counter scored 60, and subscripting instead of
+  the pointer scored 1015. Confirmed in all three regions.
+
+The rejected phrasings for both are preserved under
+`wip/overlay_29_022FB678_all/cand/`. There is no `LEDGER.md` for either group —
+everything reached 0 — so the falsified attempts are §10 plus those files, and
+nothing else was recorded.
+
+---
+
+## 9. Implicit conversions knowingly left
+
+The scratch does **not** carry the build's `-W all -W pedantic
+-W noimpl_signedunsigned -W noimplicitconv -W nounusedarg -W nomissingreturn
+-W error`, so both groups audited them by hand before landing *(fact — §9 and §5
+of the two STATUS files)*. All three builds passing is the confirmation.
+
+The one site with **no exact in-tree precedent** is
+`move->flags2 &= ~MOVE_FLAG_MULTITALENT_PP_BOOST;` in `ov29_022FB83C` — an
+`int` (`0xFFFFFEFF`) → `u16` narrowing under `-W noimplicitconv`. The tree's
+precedent for `flags2` is assignment of `0` (`src/moves_1.c:8`) and `&` tests
+(`src/moves.c:14`), not `&= ~`. It builds; it is flagged because the audit
+flagged it.
+
+**Fact:** no bare integer literal is assigned to an enum-typed lvalue anywhere in
+either group — every enum value is spelled as its enumerator. This is the trap
+that the enum change in §2 makes *more* dangerous, not less.
+
+---
+
+## 10. Open questions for a reviewer
+
+* **Is an unused enumerator the right way to carry signedness?** `ITEM_INVALID`
+  has zero users and exists only to make `enum item_id` signed. `MONSTER_INVALID`
+  and `ENTITY_NONE` are already in the tree on exactly the same terms — but
+  whether that is a *convention* or just two instances is an inference, not
+  something I found written down.
+* **The isolation build.** The commit message says the enumerator was added alone
+  and all three ROMs still matched;
+  `wip/overlay_29_0230F02C_all/STATUS.md` §3's later parenthetical says that
+  isolated build "has still not been run". I could not reconcile the two from the
+  artefacts. It is cheap to settle: revert the one line, build, restore, build.
+* **The commit's justification is in the next commit.** `AuraBowIsActive` is
+  still asm at `bff2fa3b` and lands in `146982f0`. Reviewing `bff2fa3b` alone
+  gives no visible reason for the enum change.
+* **Should `struct item::id` be `enum item_id`?** It would delete the
+  `(enum item_id)` cast in `AuraBowIsActive`. Untested, wide blast radius, and
+  `struct item_volatile` would have to move with it.
+* **The `_020AEF7C` declaration disagreement.** One struct declaration in a
+  header included by 21 files, two `u8[]`/`vu8[]` declarations in files that do
+  not include it. Pre-existing, byte-compatible, invisible to the build, not
+  fixed here. Same for `_020AF000`/`_020AF028` as `void *` and `sub_02002580`'s
+  two return types.
+* **Where should the `main_02003328` split land?** Any boundary in
+  `(0x02003608, 0x020037B4]` removes the inline; nothing measures a preference.
+  `GetTime` was chosen on taste.
+* **`_020AEFB4` / `_020AEFC8` are probably members of `_020AEF7C`, not separate
+  objects** — the arithmetic closes exactly and nothing else in the tree
+  references them. The member spelling is byte-identical but unscoreable, so the
+  symbol spelling shipped. A reviewer may prefer the honest one; it is a one-line
+  change needing no re-measurement.
+* **`OS_IRQTable` vs `HW_INTR_CHECK_BUF`** in `sub_02003704` — same address, same
+  bytes, different pool-word symbol. Swap if the PR prefers the SDK macro.
+* **`field_0x28` / `field_0x30` of `struct unk_020AEF7C` are not `volatile`, and
+  nothing measures them.** Their siblings `field_0x1c`/`field_0x20` are, forced
+  by the output. This is an unforced choice sitting next to a forced one.
+* **`struct unk_0229B220` is `u8[0x28]`** — it is the SDK's `OSVAlarm` and its
+  fields were never worked out, because nothing here reads them.
+* **The declaration census was line-oriented.** `146982f0` later found that a
+  line-oriented grep misses declarations wrapped across two lines and that eight
+  wrong ones hid that way. Whether any of **this** commit's seventeen names has a
+  wrapped declaration elsewhere was **not** checked.
+* **An empty `#ifdef EUROPE` / `#endif`** is left at
+  `src/overlay_29_0231CBC8.c:42-43`. Harmless, should go.
+* **Two confirmed matching techniques (§8) exist only in a `wip/` STATUS file**
+  and are not in `docs/MATCHING_TIPS.md`.

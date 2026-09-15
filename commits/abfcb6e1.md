@@ -1,9 +1,9 @@
-# `24d1e500` — Decomp CalcDamage; damage_calc_diag's move_category is 4 bytes, its modifiers unsigned
+# `abfcb6e1` — Decomp CalcDamage; damage_calc_diag's move_category is 4 bytes, its modifiers unsigned
 
 | | |
 |---|---|
-| **Commit** | `24d1e500` (as of writing — renamed if amended or rebased) |
-| **Branch** | `decomp-continued`, on top of `3fc6d8bd` |
+| **Commit** | `abfcb6e1` (as of writing — renamed if amended or rebased) |
+| **Branch** | `decomp-continued`, on top of `d364822d` |
 | **Verified** | all three ROMs: `pmdsky.us.nds: OK`, `pmdsky.eu.nds: OK`, `pmdsky.jp.nds: OK` — each also passing `main.sha1`, `filesystem.sha1` and `arm7.sha1` |
 
 > **Unverified AI-authored reasoning.** Not part of the decompilation, never
@@ -13,9 +13,9 @@
 
 ---
 
-Completes the damage cluster: [`5271b77a`](5271b77a.md) / [`ef68e88d`](ef68e88d.md)
-(`ApplyDamage`), [`7b76a1b2`](7b76a1b2.md) (`ApplyDamageAndEffects`),
-[`3fc6d8bd`](3fc6d8bd.md) (`CalcTypeBasedDamageEffects`). `CalcDamage`
+Completes the damage cluster: [`a51777ff`](a51777ff.md) / [`ce359434`](ce359434.md)
+(`ApplyDamage`), [`cd5c7d56`](cd5c7d56.md) (`ApplyDamageAndEffects`),
+[`d364822d`](d364822d.md) (`CalcTypeBasedDamageEffects`). `CalcDamage`
 (`0x0230BBAC`, 1290 instructions, US) is the damage formula itself: stat stages,
 item/ability/IQ-skill modifiers, the fixed-point base formula,
 `CalcTypeBasedDamageEffects`, critical hits, Reflect/Light Screen and the final
@@ -59,12 +59,12 @@ constant for `EXCLUSIVE_EFF_NO_CRITICAL_HITS` where the scratch accepted `5`.
 
 ## The shared-header change
 
-`3fc6d8bd` gave `move_category` explicit padding on the reading that it is a
+`d364822d` gave `move_category` explicit padding on the reading that it is a
 1-byte enum. This function's own store shows the field is written as a word, so
 the padding model was replaced by `s32 move_category;` (the struct stays 0x54
 bytes; the previous note's word-access evidence from `asm/overlay_29_022E0378.s`
 and `asm/overlay_29_022E335C.s` agrees). The modifiers' signedness is the same
-kind of correction as `5271b77a`'s: the tree's `s8` came from pmdsky-debug, the
+kind of correction as `a51777ff`'s: the tree's `s8` came from pmdsky-debug, the
 loads are unsigned. Both are deviations from the upstream declarations and are
 worth raising there; the fields are conceptually signed counts (−2..+2), which
 is why upstream chose `s8`, but the codegen needs `u8`.

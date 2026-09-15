@@ -1,9 +1,9 @@
-# `f8eaf87f` — Decomp `ov11_02307334`; correct three callee declarations it exposes
+# `bd3c6e4a` — Decomp `ov11_02307334`; correct three callee declarations it exposes
 
 | | |
 |---|---|
-| **Commit** | `f8eaf87f` (as of writing — renamed if amended or rebased) |
-| **Branch** | `decomp-continued`, on top of [`0cafbd14`](0cafbd14.md) |
+| **Commit** | `bd3c6e4a` (as of writing — renamed if amended or rebased) |
+| **Branch** | `decomp-continued`, on top of [`c4d14ec0`](c4d14ec0.md) |
 | **Verified** | all three ROMs: `pmdsky.us.nds: OK`, `pmdsky.eu.nds: OK`, `pmdsky.jp.nds: OK` |
 
 > **Unverified AI-authored reasoning.** Not part of the decompilation, never
@@ -33,8 +33,8 @@ every number came out exactly as predicted — 10920 lines left in the truncated
 
 ## No landing debt — the first on this branch
 
-**Fact.** Unlike [`a562678d`](a562678d.md), [`a98b22af`](a98b22af.md) and
-[`0cafbd14`](0cafbd14.md), there is **no stale `extern` to reconcile**. The
+**Fact.** Unlike [`92335aeb`](92335aeb.md), [`2238fa7d`](2238fa7d.md) and
+[`c4d14ec0`](c4d14ec0.md), there is **no stale `extern` to reconcile**. The
 symbol has exactly one caller, `ov11_02304B4C`, in the same object and still in
 asm. Zero hits in `src/`, `include/`, `main.lsf` or any `.inc`; no
 `.word ov11_02307334` anywhere, so it is in no function-pointer table; and a

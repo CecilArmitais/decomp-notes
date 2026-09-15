@@ -1,9 +1,9 @@
-# `058707bc` — Decomp ov11_022ED69C; correct BmaHeader field signedness
+# `afd96d2b` — Decomp ov11_022ED69C; correct BmaHeader field signedness
 
 | | |
 |---|---|
-| **Commit** | `058707bc` (as of writing — renamed if amended or rebased) |
-| **Branch** | `decomp-continued`, on top of `51c365db` |
+| **Commit** | `afd96d2b` (as of writing — renamed if amended or rebased) |
+| **Branch** | `decomp-continued`, on top of `c313f009` |
 | **Verified** | matching build, `build/pmdsky.us/pmdsky.us.nds: OK` |
 
 > **Unverified AI-authored reasoning.** Not part of the decompilation, never
