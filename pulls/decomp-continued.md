@@ -1,14 +1,15 @@
-# `decomp-continued` — 1506 functions across 131 commits
+# `decomp-continued` — 1542 functions across 134 commits
 
 | | |
 |---|---|
 | **Branch** | `decomp-continued` |
-| **PR** | **#290 merged** (through `5ffad87a`), then **#291 merged** (through `6425efdd`, as `440d7b7d`). **Thirty-two commits are unmerged**: the twelve listed previously (`c1a61413` … `240bea14`), plus `2447a020`, `fd3564d3`, `4c7fe636`, `dae72255`, `3fd44e59`, `7e1755dd`, `2cfa1873`, `7f1656cf`, `49da4ee9`, `9b3650fe`, `964beafb`, `92774e8a`, `967fe53b`, `0f3cbcbc`, `6f3ad694`, `637d1966`, `14339589`, `c482e2df`, `d27a7387` and `457a2aaf`. All sit on top of `a3d64122` and are not yet in a PR. (**Fact**, counted: `git log --oneline a3d64122..457a2aaf` lists exactly those 32.) |
+| **PR** | **#290 merged** (through `5ffad87a`), then **#291 merged** (through `6425efdd`, as `440d7b7d`). **Thirty-two commits are unmerged**: the twelve listed previously (`c1a61413` … `240bea14`), plus `2447a020`, `fd3564d3`, `4c7fe636`, `dae72255`, `3fd44e59`, `7e1755dd`, `2cfa1873`, `7f1656cf`, `49da4ee9`, `9b3650fe`, `964beafb`, `92774e8a`, `967fe53b`, `0f3cbcbc`, `6f3ad694`, `637d1966`, `14339589`, `c482e2df`, `d27a7387`, `457a2aaf` and `222afee8`. All sit on top of `a3d64122` and are not yet in a PR. (**Fact**, counted: `git log --oneline a3d64122..222afee8` lists exactly those 33.) |
 | **Base** | originally `upstream/main` @ `86ec9772`; after #290 the merge-base was `5ffad87a`; after #291 it was `440d7b7d`. **Rebased 2026-08-24 onto `51c365db`** (upstream PRs #293/#294), then **rebased 2026-09-15 onto `c313f009`** (upstream PRs #295/#296/#297), then **rebased 2026-09-18 onto `a3d64122`** (upstream PRs #298/#299) |
-| **Commits** | **131** — the rows of the *Commits* table below, counted (127 at the previous update, plus four). The table is the enumeration; the count is re-derived from it rather than incremented, because an earlier revision of this cell had drifted from the table by one. |
-| **Functions decompiled** | **1506** (1194 + 48 at `6f3ad694` + 86 at `637d1966` + 119 at `14339589` + 59 at `c482e2df`) — also the sum of the table's `fns` column, re-derived rather than incremented |
+| **Commits** | **134** — the rows of the *Commits* table below, counted. The table is the enumeration; the count is re-derived from it rather than incremented. **It had drifted again**: this cell read 131 while the table held 133 rows, because `d27a7387` and `457a2aaf` were appended to the table without the cell being re-derived. That is the second time this cell has drifted, in the same direction, for the same reason — **re-derive it, never increment it.** |
+| **Functions decompiled** | **1542** — the sum of the table's `fns` column, re-derived. This cell had drifted with the one above, reading 1506 while the column summed to 1542; the missing 36 are `d27a7387` (28) and `457a2aaf` (8). `222afee8` decompiles nothing and adds 0. |
 | **Verified** | `build/pmdsky.us/pmdsky.us.nds: OK` at every commit. **All three ROMs** at `e0f71917`, `5f96316f`, `38aa265d`, `76533508`, `9097cad3`, `d387d4e2`, `d814f8d0`, `f47593d9`, `240bea14`, `fd3564d3`, `4c7fe636`, `dae72255`, `3fd44e59`, `7e1755dd`, `2cfa1873`, `7f1656cf`, `49da4ee9`, `9b3650fe`, `964beafb`, `92774e8a`, `967fe53b`, `0f3cbcbc`, `6f3ad694`, `637d1966`, `14339589` and `c482e2df`. `33d90d0f` and `2447a020` are US-only on record — for `2447a020` the three-region evidence is decomp.me score 0, not a linked EU/JP ROM, and the note says so. **`9b3650fe` was amended**: as first committed it broke `OVY_13.sbin`, and the gate build that "verified" it had silently built the previous commit |
-| **Re-verified after the 2026-09-18 rebase** | all three ROMs at the tip `457a2aaf`: `build/pmdsky.us/pmdsky.us.nds: OK`, `build/pmdsky.eu/pmdsky.eu.nds: OK`, `build/pmdsky.jp/pmdsky.jp.nds: OK`. The per-commit US builds recorded above were run BEFORE the rebase and were **not** re-run per commit afterwards -- only the tip is re-verified. |
+| **Re-verified after the 2026-09-18 rebase** | all three ROMs at `457a2aaf`: `build/pmdsky.us/pmdsky.us.nds: OK`, `build/pmdsky.eu/pmdsky.eu.nds: OK`, `build/pmdsky.jp/pmdsky.jp.nds: OK`. The per-commit US builds recorded above were run BEFORE the rebase and were **not** re-run per commit afterwards -- only the tip is re-verified. |
+| **The tip is now `222afee8`** | `457a2aaf` is no longer the tip. `222afee8` is a three-line identifier rename proved byte-identical at **object** level in all three regions (see [its note](../commits/222afee8.md)), so the three-region ROM result recorded above carries forward to it by construction; a three-region ROM build of that working tree additionally reached `build/pmdsky.jp/pmdsky.jp.nds: OK`. **Stated as an inference, not a measurement**: the US and EU ROMs were not re-checksummed at `222afee8`, because a byte-identical object cannot change the link input. |
 | **Notes written** | **retroactively**, after commit 50 |
 
 > **Unverified AI-authored reasoning.** Not part of the decompilation, never
@@ -180,6 +181,7 @@ both reviewing it incrementally and splitting it later feasible.
 | `c482e2df` | Decompile 59 more callees; clear five asm files entirely | 59 | [notes](../commits/c482e2df.md) |
 | `d27a7387` | Decompile 28 more callees; clear 21 asm files entirely | 28 | [notes](../commits/d27a7387.md) |
 | `457a2aaf` | Decompile 8 more functions; clear four asm files entirely | 8 | [notes](../commits/457a2aaf.md) |
+| `222afee8` | Rename three padding members to the documented `field_0x<off>` form | 0 | [notes](../commits/222afee8.md) |
 
 **A note on the last five links.** `967fe53b`'s note was missing at the previous
 update of this page and its row said so; it exists now. The four notes for
@@ -782,7 +784,7 @@ members is what produces the target's base-register arithmetic** — the first w
 `struct unk_022FBD24` in [`964beafb`](../commits/964beafb.md), below. A reviewer
 weighing one should weigh both; they are the same argument twice.
 
-### Two width corrections, and a comment lost with a member ([`0f3cbcbc`](../commits/0f3cbcbc.md))
+### Two width corrections, and a pmdsky-debug field that is described correctly at the wrong address ([`0f3cbcbc`](../commits/0f3cbcbc.md))
 
 Each replaces adjacent `u8` members with one wider member at the same offset, so
 **no following offset and no struct alignment moves**.
@@ -800,15 +802,64 @@ every region `#ifdef`, so one edit serves all three regions.
 
 **Two documentation consequences, flagged rather than fixed.** Deleting
 `speed_boost_counter` also deleted its comment — *"Turn counter, Speed Boost
-triggers every 250 turns, then the counter is reset"* — which was the tree's
-only record of what `0x1F` is, and `0x1F` is now inside the 16-bit field. And
-the surviving comment on `number_completed_floors` still reads *"odd it is not a
-u16 like the others"*, written when the member was `u8` and now stale against
-the `s16` beneath it. Both were left alone because CLAUDE.md forbids authoring
-comments in `pmd-sky`; someone with full context should decide the wording.
-**Not checked here:** whether `speed_boost_counter` carries that name in
-pmdsky-debug, and therefore whether absorbing it is a deviation worth raising
-upstream.
+triggers every 250 turns, then the counter is reset"* — and the surviving comment
+on `number_completed_floors` still reads *"odd it is not a u16 like the others"*,
+written when the member was `u8` and now stale against the `s16` beneath it. Both
+were left alone because CLAUDE.md forbids authoring comments in `pmd-sky`;
+someone with full context should decide the wording.
+
+**Resolved 2026-09-19 — and this one is worth taking back to pmdsky-debug.** The
+question this section used to leave open (*whether absorbing `speed_boost_counter`
+is a deviation worth raising upstream*) has been answered: **the Speed Boost
+counter is real, and it is not in `struct dungeon`.** It is a byte on
+`struct monster` — `+0x11F` in NORTH_AMERICA and EUROPE, `+0x11B` under JAPAN via
+that file's own `OV29_0230FC24_OFFSET` region macro — incremented, tested and
+reset by `ActivateEndOfTurnEffects` (`asm/overlay_29_0230F9A4.s:766-784`) under
+ability `0xB`, against `SPEED_BOOST_TURNS` = `.byte 0xFA` = **250**
+(`asm/overlay_10_rodata_022C464C.s`). The byte is already in the tree, unnamed, as
+`struct monster::field_0x11f` (`include/dungeon_mode.h:405`). That reproduces
+upstream's sentence term for term at a different address, so pmdsky-debug appears
+to have attached a real, correctly-described mechanic to the wrong offset. Nothing
+true about `dungeon` 0x1F was lost by absorbing it.
+
+Three further facts close the merge, all established after the commit was made
+and written up in [`0f3cbcbc`](../commits/0f3cbcbc.md) (2026-09-19 addendum):
+
+* **Alignment forces the direction.** A 16-bit member must be 2-byte aligned, so
+  the halfword can only begin at 0x1E (even), never 0x1F (odd). It was never
+  possible for `speed_boost_counter` to be the 16-bit field.
+* **Nothing accesses `dungeon` 0x1D or 0x1F at any width.** A complete census of
+  every immediate-offset byte access at those offsets in the `a3d64122` asm tree
+  (80 + 38 sites) finds zero `struct dungeon` accesses. The caveat — ~95 sites
+  outside dungeon-mode code were classified structurally rather than hand-traced
+  — is recorded in the commit note, along with a warning that the *first* version
+  of that census was unsound in the worst place (its regex excluded `sb`/`sl`/`fp`
+  bases, which is exactly where a long-lived dungeon pointer lives).
+* **The initialisation writes both bytes at once** — `strh r6, [r0, #0x1e]` with
+  `r6 = 0` zeroes 0x1E and 0x1F together. An independent counter at 0x1F would be
+  silently reset on every dungeon load.
+
+**The sibling merge at 0x1C has stronger evidence still, and it is upstream's
+own.** `src/overlay_29_022F0EDC.c:191`, landed and inside the matching ROM at
+`a3d64122`, reads `*(u16 *)&DUNGEON_PTR->field_0x1c = 0;` — a cast that exists
+only because `u8 field_0x1c; u8 field_0x1d;` cannot express the `strh` retail
+performs. Upstream hit the same wall and worked around it at the use site. See
+[`637d1966`](../commits/637d1966.md). If these merges are accepted, that cast
+should be removed with them.
+
+**Still open, and deliberately:** the *name* `number_completed_floors` remains
+upstream's guess. What is proved is width, signedness, and what the field is
+arithmetically used for. Mildly against the name: it is 0x1E, not 0x20, that is
+added to the floor byte at 0x749 in `ov29_022E335C`, `DisplayUi` and
+`DisplayFloorCard` — which sits oddly with the upstream descriptions of both
+members. Renaming would need its own investigation; neither merge depends on it.
+
+**A prediction for a future contributor**, recorded here because it will surface
+as a mismatch rather than as a compile error: `asm/overlay_29_022E6928.s:547`
+reads `dungeon + 0x20` with `ldrsh`, while the tree declares
+`u16 number_preceding_floors`. Expect to need `s16` when
+`LoadMappaFileAttributes` is decompiled. Nothing contradicts `u16` today only
+because that function is still assembly.
 
 ### `DUNGEON_PTR`: the lever is complete-vs-incomplete type, not scalar-vs-array ([`0f3cbcbc`](../commits/0f3cbcbc.md))
 

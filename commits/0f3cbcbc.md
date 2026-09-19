@@ -218,6 +218,107 @@ forbids authoring comments in `pmd-sky`; neither was mine to re-word):
 
 **A reviewer with full context should decide what those comments become.**
 
+#### Addendum (2026-09-19): the Speed Boost counter is real — it lives on `struct monster`, not at `dungeon` 0x1F
+
+Written while preparing the branch to be pushed. It **resolves** the open
+question above, and moves the merge from *"the reads force 16 bits"* to *"0x1F
+was never a field."*
+
+**Fact — the mechanic upstream describes exists, at a different address.**
+`ActivateEndOfTurnEffects` (`asm/overlay_29_0230F9A4.s:766-784`) gates on ability
+`0xB` and then increments, tests and resets a **byte on `struct monster`**:
+
+```asm
+mov  r1, #0xb                                      ; Speed Boost
+bl   AbilityIsActiveVeneer
+ldrb r1, [r4, #0x11f + OV29_0230FC24_OFFSET]       ; r4 = entity->info
+ldr  r0, _02310AA8 ; =SPEED_BOOST_TURNS
+add  r2, r1, #1
+strb r2, [r4, #0x11f + OV29_0230FC24_OFFSET]       ; counter + 1
+cmp  r1, r0 / blt …
+strb r3, [r4, #0x11f + OV29_0230FC24_OFFSET]       ; reset to 0
+bl   BoostSpeedOneStage
+```
+
+and `SPEED_BOOST_TURNS` is `.byte 0xFA` = **250**
+(`asm/overlay_10_rodata_022C464C.s`). That is upstream's sentence — *"Turn
+counter, Speed Boost triggers every 250 turns, then the counter is reset"* —
+matched term for term.
+
+`OV29_0230FC24_OFFSET` is the file's own region macro, defined at
+`asm/overlay_29_0230F9A4.s:201-209` as `-4` under `JAPAN` and `0` otherwise, so
+the member is **`monster + 0x11F` in NORTH_AMERICA and EUROPE** and `0x11B` under
+JAPAN. `include/dungeon_mode.h:405` already declares `u8 field_0x11f;` — the byte
+exists in the tree today, unnamed, and is the one being counted.
+
+**Inference (well-supported).** pmdsky-debug attached a correctly-described, real
+mechanic to the wrong address. The comment deleted with the member documented
+behaviour that does not live at `dungeon` 0x1F, which is why deleting the member
+cost no reader anything.
+
+**Fact — nothing accesses `dungeon` 0x1D or 0x1F, at any width.** Every
+immediate-offset byte access at `#0x1d` (80 sites) and `#0x1f` (38 sites) in the
+whole `a3d64122` asm tree was enumerated and classified. A member at a fixed
+offset can only be reached by an immediate-offset `ldrb`/`strb` (the ARM
+byte-immediate range is 0–4095), so for a fixed field the census is complete.
+Every site resolves to one of: `struct monster` 0x1A–0x1D — the four vitamin
+stat-boost bytes, identified one-to-one by `ApplyProteinEffect` /
+`ApplyCalciumEffect` / `ApplyIronEffect` / `ApplyZincEffect` in
+`asm/overlay_29_02317844.s`; a 0x1E-byte dungeon-generation grid cell (stride
+`0x1C2` = 15 × `0x1E`); a stack local; or a DWC/menu/keyboard/sound record
+outside dungeon mode. **Zero** are `struct dungeon`.
+
+**Fact — alignment forces the direction of the merge.** A 16-bit member must be
+2-byte aligned: 0x1E is even, 0x1F is odd, so the halfword can only begin at
+0x1E. It is not possible for `speed_boost_counter` to have been the 16-bit field
+with `number_completed_floors` absorbed into it. The merge could only go this way
+round.
+
+**Fact — the initialisation writes both bytes at once.**
+`asm/overlay_29_022E6928.s:545` is `strh r6, [r0, #0x1e]` with `r6 = 0`, which
+zeroes 0x1E **and** 0x1F together. Had 0x1F been an independent turn counter,
+loading a dungeon would have silently reset it every time.
+
+**Deliberately still not established: the name.** What is proved is that the
+field at 0x1E is 16-bit, is read signed, is zeroed at dungeon load, is summed
+with 0x20 into 0x22, and is added to the floor byte at 0x749 to form a displayed
+floor number. `number_completed_floors` remains upstream's guess. Mildly against
+it: it is 0x1E, not 0x20, that is added to the floor number in `ov29_022E335C`,
+`DisplayUi` and `DisplayFloorCard`, which sits oddly with the upstream
+descriptions of *both* members. Renaming needs its own investigation; the merge
+does not depend on the name being right.
+
+**Coverage caveat, stated as a limit rather than a result.** ~95 of the censused
+sites lie outside dungeon-mode code and were classified **structurally**, not by
+hand-tracing each base register: their files contain no `=DUNGEON_PTR`, none of
+the enclosing functions is `bl`-ed from any `overlay_29` file (nor from
+`asm/main_0204357C.s` or `asm/overlay_31_023838E4.s`), and the subsystems are
+DWC/GameSpy, Sha1, sound, keyboard, windowing, menus and `vsprintf`. The two that
+*did* have a dungeon-side call edge were traced individually — `ShowKeyboard`
+(`asm/main_02034974.s:2334-2342`, base is the `_020AFDF0` keyboard global) and
+`CreateAdvancedMenu` (its 0x1f accesses are `[sp, #0x1f]` stack locals). No
+prototype under `include/` takes a `struct dungeon *` at all, so a dungeon
+pointer arriving in one of those files as a parameter is improbable — but that is
+an argument, not a proof.
+
+**A method note worth keeping.** The first census run was **unsound**, and in the
+worst possible place: the site regex spelled the base as `\[r[0-9a-z]+,`, which
+excludes `sp`, `sl`, `sb`, `fp`, `ip` and `lr`, and matched `(ldrb|strb)[a-z]*`,
+which cannot match a condition code written before the `b` (`strneb`, `ldreqb`).
+Callee-saved registers are exactly where a long-lived dungeon pointer lives, so
+the blind spot covered the case the census existed to rule out. The negative
+above is the re-derived one. This is the same failure as
+`docs/MATCHING_TIPS.md` → *A search harness that cannot fail loudly will hand you
+a perfect wrong answer*, reached from a third direction.
+
+**A prediction, for whoever lands `LoadMappaFileAttributes`.**
+`asm/overlay_29_022E6928.s:547` reads `dungeon + 0x20` with **`ldrsh`**, while
+the tree declares `u16 number_preceding_floors`. MWCC emits `ldrh` for a `u16`
+rvalue, so expect to need `s16` there. Nothing contradicts `u16` today only
+because that function is still assembly and has never been compiled. 0x22's
+signedness stays undetermined — it is only ever stored in the code found, and
+`strh` is emitted for both signednesses.
+
 ### `monster::field_0x188` — four `u8` → one `s32`
 
 **Fact, the reads.** `PlayEffectAnimationEntity` reads it with a word `ldr`
@@ -600,9 +701,13 @@ into its own header and delete that line.
   declarations reach score 0 and the bytes cannot distinguish them. The tree now
   deliberately carries three different spellings across five files; none may be
   normalised without re-measuring the functions that forced each.
-* **The two lost/stale comments at `dungeon` offset 0x1E–0x1F.** The Speed Boost
-  description is gone with the member; the surviving comment now contradicts the
-  declared width. Both need a human with full context.
+* **The two lost/stale comments at `dungeon` offset 0x1E–0x1F.** *Partly resolved
+  by the 2026-09-19 addendum above.* The deleted Speed Boost description turns out
+  to have documented a real mechanic that lives on `monster + 0x11F`, not at
+  `dungeon` 0x1F, so nothing true about 0x1F was lost — and the point is worth
+  raising upstream rather than only recording here. What is still open is the
+  **surviving** comment, which contradicts the `s16` beneath it, and the member's
+  **name**, which remains upstream's guess. Both need a human with full context.
 * **Typing `struct item::id` as `enum item_id`** would delete the
   `(enum item_id)` cast in `AuraBowIsActive`. Untested, wide blast radius,
   `struct item_volatile` would have to move with it.
