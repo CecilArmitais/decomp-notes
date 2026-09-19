@@ -1,9 +1,9 @@
-# `8e51f191` — Decompile 38 more callees; clear five more asm files entirely
+# `964beafb` — Decompile 38 more callees; clear five more asm files entirely
 
 | | |
 |---|---|
-| **Commit** | `8e51f191` (as of writing — renamed if amended or rebased) |
-| **Branch** | `decomp-continued`, on top of [`78ca3a83`](78ca3a83.md) |
+| **Commit** | `964beafb` (as of writing — renamed if amended or rebased) |
+| **Branch** | `decomp-continued`, on top of [`9b3650fe`](9b3650fe.md) |
 | **Verified** | all three ROMs: `pmdsky.us.nds: OK`, `pmdsky.eu.nds: OK`, `pmdsky.jp.nds: OK` |
 
 > **Unverified AI-authored reasoning.** Not part of the decompilation, never

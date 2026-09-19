@@ -1,9 +1,9 @@
-# `146982f0` — Decompile 26 more callees; clear three asm files entirely
+# `0f3cbcbc` — Decompile 26 more callees; clear three asm files entirely
 
 | | |
 |---|---|
-| **Commit** | `146982f0` (as of writing — renamed if amended or rebased) |
-| **Branch** | `decomp-continued`, on top of `bff2fa3b` |
+| **Commit** | `0f3cbcbc` (as of writing — renamed if amended or rebased) |
+| **Branch** | `decomp-continued`, on top of `967fe53b` |
 | **Verified** | all three ROMs: `pmdsky.us.nds: OK`, `pmdsky.eu.nds: OK`, `pmdsky.jp.nds: OK` |
 
 > **Unverified AI-authored reasoning.** Not part of the decompilation, never
@@ -119,7 +119,7 @@ the only writer of the whole range.
 **Fact.** `src/overlay_29_022FBBEC.c:72` already contains
 `struct unk_022FBD24 *p = &DUNGEON_PTR[0]->field_0x3dcc;`, character for
 character, for the *other* grouped member of this same struct (landed in
-pmd-sky `8e51f191`). Nothing about the idiom is invented here.
+pmd-sky `964beafb`). Nothing about the idiom is invented here.
 
 ### Safety of the edit
 
@@ -293,7 +293,7 @@ as scalar-vs-array; scalar merely happens to sit on the complete side.
   in the tree).
 * **Fact:** in-tree precedent predates this pass — `src/special_move_types.c:17`
   already declares `extern struct dungeon *DUNGEON_PTR[2];`, landed in pmd-sky
-  `8e51f191` for `ov29_0231AFB4` / `ov29_0231B008` (460 and 515 → 0).
+  `964beafb` for `ov29_0231AFB4` / `ov29_0231B008` (460 and 515 → 0).
 * **Fact:** `DUNGEON_PTR` measures **8 bytes** — in
   `asm/overlay_29_data_023534E0.s` the label is followed by two `.byte`
   quadruples before the next `.global`. So `[2]` is the symbol's exact extent.
@@ -413,7 +413,7 @@ silently normalised.
 # `AuraBowIsActive` — it needed no change in the end, and one cast it did need
 
 **Fact.** The body is unchanged from the 200-scoring candidate. What moved was
-the tree: `ITEM_INVALID = -1` landed separately in `bff2fa3b`
+the tree: `ITEM_INVALID = -1` landed separately in `967fe53b`
 (`include/item.h:9`), which made `enum item_id` signed under `-enum min`, and
 the target's `ldrsh` fell out on its own. Measured against a context generated
 from the tree as it stands: **score 0 in NORTH_AMERICA, EUROPE and JAPAN with
@@ -454,7 +454,7 @@ Recorded because it is the obvious next question and nobody has answered it.
 ### A trap worth carrying forward
 
 `AuraBowIsActive` measured 200 for the whole of that group's work **purely
-because the wip's generated context predated `bff2fa3b`**. An entire
+because the wip's generated context predated `967fe53b`**. An entire
 shared-enum decision section was written on that basis and is now obsolete.
 **Regenerate the context before theorising about the C** — a surprising score is
 more often a stale header set than a wrong candidate.

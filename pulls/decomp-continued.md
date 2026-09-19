@@ -3,12 +3,12 @@
 | | |
 |---|---|
 | **Branch** | `decomp-continued` |
-| **PR** | **#290 merged** (through `5ffad87a`), then **#291 merged** (through `6425efdd`, as `440d7b7d`). **Thirty commits are unmerged**: the twelve listed previously (`afd96d2b` … `bd3c6e4a`), plus `449eba01`, `f14c8d15`, `5ebe15c4`, `fc3680b1`, `77105be0`, `b8fb6d24`, `1dc24515`, `6cf4155d`, `c7c6f179`, `78ca3a83`, `8e51f191`, `636bf2e5`, `bff2fa3b`, `146982f0`, `76558112`, `d6db5fa5`, `3853e3bc` and `50ef900c`. All sit on top of `c313f009` and are not yet in a PR. (**Fact**, counted: `git log --oneline c313f009..50ef900c` lists exactly those 30.) |
-| **Base** | originally `upstream/main` @ `86ec9772`; after #290 the merge-base was `5ffad87a`; after #291 it was `440d7b7d`. **Rebased 2026-08-24 onto `51c365db`** (upstream PRs #293/#294), then **rebased 2026-09-15 onto `c313f009`** (upstream PRs #295/#296/#297) |
+| **PR** | **#290 merged** (through `5ffad87a`), then **#291 merged** (through `6425efdd`, as `440d7b7d`). **Thirty-two commits are unmerged**: the twelve listed previously (`c1a61413` … `240bea14`), plus `2447a020`, `fd3564d3`, `4c7fe636`, `dae72255`, `3fd44e59`, `7e1755dd`, `2cfa1873`, `7f1656cf`, `49da4ee9`, `9b3650fe`, `964beafb`, `92774e8a`, `967fe53b`, `0f3cbcbc`, `6f3ad694`, `637d1966`, `14339589`, `c482e2df`, `d27a7387` and `457a2aaf`. All sit on top of `a3d64122` and are not yet in a PR. (**Fact**, counted: `git log --oneline a3d64122..457a2aaf` lists exactly those 32.) |
+| **Base** | originally `upstream/main` @ `86ec9772`; after #290 the merge-base was `5ffad87a`; after #291 it was `440d7b7d`. **Rebased 2026-08-24 onto `51c365db`** (upstream PRs #293/#294), then **rebased 2026-09-15 onto `c313f009`** (upstream PRs #295/#296/#297), then **rebased 2026-09-18 onto `a3d64122`** (upstream PRs #298/#299) |
 | **Commits** | **131** — the rows of the *Commits* table below, counted (127 at the previous update, plus four). The table is the enumeration; the count is re-derived from it rather than incremented, because an earlier revision of this cell had drifted from the table by one. |
-| **Functions decompiled** | **1506** (1194 + 48 at `76558112` + 86 at `d6db5fa5` + 119 at `3853e3bc` + 59 at `50ef900c`) — also the sum of the table's `fns` column, re-derived rather than incremented |
-| **Verified** | `build/pmdsky.us/pmdsky.us.nds: OK` at every commit. **All three ROMs** at `ce359434`, `cd5c7d56`, `d364822d`, `abfcb6e1`, `b1b5c94f`, `92335aeb`, `2238fa7d`, `c4d14ec0`, `bd3c6e4a`, `f14c8d15`, `5ebe15c4`, `fc3680b1`, `77105be0`, `b8fb6d24`, `1dc24515`, `6cf4155d`, `c7c6f179`, `78ca3a83`, `8e51f191`, `636bf2e5`, `bff2fa3b`, `146982f0`, `76558112`, `d6db5fa5`, `3853e3bc` and `50ef900c`. `081c188b` and `449eba01` are US-only on record — for `449eba01` the three-region evidence is decomp.me score 0, not a linked EU/JP ROM, and the note says so. **`78ca3a83` was amended**: as first committed it broke `OVY_13.sbin`, and the gate build that "verified" it had silently built the previous commit |
-| **Re-verified after the 2026-09-15 rebase** | all three ROMs at the tip `50ef900c`: `build/pmdsky.us/pmdsky.us.nds: OK`, `build/pmdsky.eu/pmdsky.eu.nds: OK`, `build/pmdsky.jp/pmdsky.jp.nds: OK`. The per-commit US builds recorded above were run BEFORE the rebase and were **not** re-run per commit afterwards -- only the tip is re-verified. |
+| **Functions decompiled** | **1506** (1194 + 48 at `6f3ad694` + 86 at `637d1966` + 119 at `14339589` + 59 at `c482e2df`) — also the sum of the table's `fns` column, re-derived rather than incremented |
+| **Verified** | `build/pmdsky.us/pmdsky.us.nds: OK` at every commit. **All three ROMs** at `e0f71917`, `5f96316f`, `38aa265d`, `76533508`, `9097cad3`, `d387d4e2`, `d814f8d0`, `f47593d9`, `240bea14`, `fd3564d3`, `4c7fe636`, `dae72255`, `3fd44e59`, `7e1755dd`, `2cfa1873`, `7f1656cf`, `49da4ee9`, `9b3650fe`, `964beafb`, `92774e8a`, `967fe53b`, `0f3cbcbc`, `6f3ad694`, `637d1966`, `14339589` and `c482e2df`. `33d90d0f` and `2447a020` are US-only on record — for `2447a020` the three-region evidence is decomp.me score 0, not a linked EU/JP ROM, and the note says so. **`9b3650fe` was amended**: as first committed it broke `OVY_13.sbin`, and the gate build that "verified" it had silently built the previous commit |
+| **Re-verified after the 2026-09-18 rebase** | all three ROMs at the tip `457a2aaf`: `build/pmdsky.us/pmdsky.us.nds: OK`, `build/pmdsky.eu/pmdsky.eu.nds: OK`, `build/pmdsky.jp/pmdsky.jp.nds: OK`. The per-commit US builds recorded above were run BEFORE the rebase and were **not** re-run per commit afterwards -- only the tip is re-verified. |
 | **Notes written** | **retroactively**, after commit 50 |
 
 > **Unverified AI-authored reasoning.** Not part of the decompilation, never
@@ -148,43 +148,45 @@ both reviewing it incrementally and splitting it later feasible.
 | `be41c2f3` | Decomp 20 functions, emptying six asm fragments | 20 | [notes](../commits/be41c2f3.md) |
 | `d9df74f0` | Decomp 17 functions, emptying eight asm files | 17 | [notes](../commits/d9df74f0.md) |
 | `6425efdd` | Decomp 16 functions, emptying nine asm files | 16 | [notes](../commits/6425efdd.md) |
-| `afd96d2b` | Decomp ov11_022ED69C; correct BmaHeader field signedness | 1 | [notes](../commits/afd96d2b.md) |
-| `a51777ff` | Decomp ApplyDamage; fix a message-id parameter type and three field types | 1 | [notes](../commits/a51777ff.md) |
-| `ce359434` | ApplyDamage: match the EU and JP builds | 0 | [notes](../commits/ce359434.md) |
-| `cd5c7d56` | Decomp ApplyDamageAndEffects; ApplyDamage's damage source is signed 16-bit | 1 | [notes](../commits/cd5c7d56.md) |
-| `d364822d` | Decomp CalcTypeBasedDamageEffects; pad damage_calc_diag to its real layout | 1 | [notes](../commits/d364822d.md) |
-| `abfcb6e1` | Decomp CalcDamage; damage_calc_diag's move_category is 4 bytes, its modifiers unsigned | 1 | [notes](../commits/abfcb6e1.md) |
-| `b1b5c94f` | Use generic local names in the five functions landed since 51c365db | -- | [notes](../commits/b1b5c94f.md) |
-| `081c188b` | Decomp the fixed-point helper cluster at the end of main_020504BC.s | 5 | [notes](../commits/081c188b.md) |
-| `92335aeb` | Decomp ActivateEndOfTurnEffects; monster::bide_move_id is a 2-byte enum move_id | 1 | [notes](../commits/92335aeb.md) |
-| `2238fa7d` | Decomp ApplyItemEffect; replace its stale extern with the new header | 1 | [notes](../commits/2238fa7d.md) |
-| `c4d14ec0` | Decomp sub_0203D538; replace its stale extern with the new header | 1 | [notes](../commits/c4d14ec0.md) |
-| `bd3c6e4a` | Decomp ov11_02307334; correct three callee declarations it exposes | 1 | [notes](../commits/bd3c6e4a.md) |
-| `449eba01` | Decompile GenerateMission (0x0205D224) | 1 | [notes](../commits/449eba01.md) |
-| `f14c8d15` | Decompile GenerateExtraHallways (0x0233C9E8) | 1 | [notes](../commits/f14c8d15.md) |
-| `5ebe15c4` | Decompile CreateGridCellConnections (0x0233E43C) | 1 | [notes](../commits/5ebe15c4.md) |
-| `fc3680b1` | Rephrase eight matched functions; drop index casts and magic numbers | 0 | [notes](../commits/fc3680b1.md) |
-| `77105be0` | Decompile 16 callees of the combat and dungeon-generation functions | 16 | [notes](../commits/77105be0.md) |
-| `b8fb6d24` | Decompile 11 more callees; give them headers and drop 40 call-site declarations | 11 | [notes](../commits/b8fb6d24.md) |
-| `1dc24515` | Decompile 13 more callees; all merge at a file boundary | 13 | [notes](../commits/1dc24515.md) |
-| `6cf4155d` | Decompile 11 more callees; two cheap neighbour clusters | 11 | [notes](../commits/6cf4155d.md) |
-| `c7c6f179` | Decompile 12 more callees; clear the head of overlay_11_02308D1C | 12 | [notes](../commits/c7c6f179.md) |
-| `78ca3a83` | Decompile 26 more callees; clear six asm files entirely | 26 | [notes](../commits/78ca3a83.md) |
-| `8e51f191` | Decompile 38 more callees; clear five more asm files entirely | 38 | [notes](../commits/8e51f191.md) |
-| `636bf2e5` | Decompile the head of overlay_11_023090DC; type the parent-menu tables | 5 | [notes](../commits/636bf2e5.md) |
-| `bff2fa3b` | Decompile 17 more callees; clear two asm files; enum item_id gains ITEM_INVALID | 17 | [notes](../commits/bff2fa3b.md) |
-| `146982f0` | Decompile 26 more callees; clear three asm files entirely | 26 | [notes](../commits/146982f0.md) |
-| `76558112` | Decompile 48 more callees; clear four asm files entirely | 48 | [notes](../commits/76558112.md) |
-| `d6db5fa5` | Decompile 86 more callees; clear three asm files, split a fourth | 86 | [notes](../commits/d6db5fa5.md) |
-| `3853e3bc` | Decompile 119 more callees; clear four asm files entirely | 119 | [notes](../commits/3853e3bc.md) |
-| `50ef900c` | Decompile 59 more callees; clear five asm files entirely | 59 | [notes](../commits/50ef900c.md) |
+| `c1a61413` | Decomp ov11_022ED69C; correct BmaHeader field signedness | 1 | [notes](../commits/c1a61413.md) |
+| `eb0db73b` | Decomp ApplyDamage; fix a message-id parameter type and three field types | 1 | [notes](../commits/eb0db73b.md) |
+| `e0f71917` | ApplyDamage: match the EU and JP builds | 0 | [notes](../commits/e0f71917.md) |
+| `5f96316f` | Decomp ApplyDamageAndEffects; ApplyDamage's damage source is signed 16-bit | 1 | [notes](../commits/5f96316f.md) |
+| `38aa265d` | Decomp CalcTypeBasedDamageEffects; pad damage_calc_diag to its real layout | 1 | [notes](../commits/38aa265d.md) |
+| `76533508` | Decomp CalcDamage; damage_calc_diag's move_category is 4 bytes, its modifiers unsigned | 1 | [notes](../commits/76533508.md) |
+| `9097cad3` | Use generic local names in the five functions landed since 51c365db | -- | [notes](../commits/9097cad3.md) |
+| `33d90d0f` | Decomp the fixed-point helper cluster at the end of main_020504BC.s | 5 | [notes](../commits/33d90d0f.md) |
+| `d387d4e2` | Decomp ActivateEndOfTurnEffects; monster::bide_move_id is a 2-byte enum move_id | 1 | [notes](../commits/d387d4e2.md) |
+| `d814f8d0` | Decomp ApplyItemEffect; replace its stale extern with the new header | 1 | [notes](../commits/d814f8d0.md) |
+| `f47593d9` | Decomp sub_0203D538; replace its stale extern with the new header | 1 | [notes](../commits/f47593d9.md) |
+| `240bea14` | Decomp ov11_02307334; correct three callee declarations it exposes | 1 | [notes](../commits/240bea14.md) |
+| `2447a020` | Decompile GenerateMission (0x0205D224) | 1 | [notes](../commits/2447a020.md) |
+| `fd3564d3` | Decompile GenerateExtraHallways (0x0233C9E8) | 1 | [notes](../commits/fd3564d3.md) |
+| `4c7fe636` | Decompile CreateGridCellConnections (0x0233E43C) | 1 | [notes](../commits/4c7fe636.md) |
+| `dae72255` | Rephrase eight matched functions; drop index casts and magic numbers | 0 | [notes](../commits/dae72255.md) |
+| `3fd44e59` | Decompile 16 callees of the combat and dungeon-generation functions | 16 | [notes](../commits/3fd44e59.md) |
+| `7e1755dd` | Decompile 11 more callees; give them headers and drop 40 call-site declarations | 11 | [notes](../commits/7e1755dd.md) |
+| `2cfa1873` | Decompile 13 more callees; all merge at a file boundary | 13 | [notes](../commits/2cfa1873.md) |
+| `7f1656cf` | Decompile 11 more callees; two cheap neighbour clusters | 11 | [notes](../commits/7f1656cf.md) |
+| `49da4ee9` | Decompile 12 more callees; clear the head of overlay_11_02308D1C | 12 | [notes](../commits/49da4ee9.md) |
+| `9b3650fe` | Decompile 26 more callees; clear six asm files entirely | 26 | [notes](../commits/9b3650fe.md) |
+| `964beafb` | Decompile 38 more callees; clear five more asm files entirely | 38 | [notes](../commits/964beafb.md) |
+| `92774e8a` | Decompile the head of overlay_11_023090DC; type the parent-menu tables | 5 | [notes](../commits/92774e8a.md) |
+| `967fe53b` | Decompile 17 more callees; clear two asm files; enum item_id gains ITEM_INVALID | 17 | [notes](../commits/967fe53b.md) |
+| `0f3cbcbc` | Decompile 26 more callees; clear three asm files entirely | 26 | [notes](../commits/0f3cbcbc.md) |
+| `6f3ad694` | Decompile 48 more callees; clear four asm files entirely | 48 | [notes](../commits/6f3ad694.md) |
+| `637d1966` | Decompile 86 more callees; clear three asm files, split a fourth | 86 | [notes](../commits/637d1966.md) |
+| `14339589` | Decompile 119 more callees; clear four asm files entirely | 119 | [notes](../commits/14339589.md) |
+| `c482e2df` | Decompile 59 more callees; clear five asm files entirely | 59 | [notes](../commits/c482e2df.md) |
+| `d27a7387` | Decompile 28 more callees; clear 21 asm files entirely | 28 | [notes](../commits/d27a7387.md) |
+| `457a2aaf` | Decompile 8 more functions; clear four asm files entirely | 8 | [notes](../commits/457a2aaf.md) |
 
-**A note on the last five links.** `bff2fa3b`'s note was missing at the previous
+**A note on the last five links.** `967fe53b`'s note was missing at the previous
 update of this page and its row said so; it exists now. The four notes for
-`76558112`, `d6db5fa5`, `3853e3bc` and `50ef900c` were **being written in
+`6f3ad694`, `637d1966`, `14339589` and `c482e2df` were **being written in
 parallel with this update**. Checked, not assumed, at the moment this paragraph
-was written: `bff2fa3b`, `76558112`, `d6db5fa5` and `3853e3bc` are on disk;
-**`commits/50ef900c.md` is not yet**, so that one link is written from the
+was written: `967fe53b`, `6f3ad694`, `637d1966` and `14339589` are on disk;
+**`commits/c482e2df.md` is not yet**, so that one link is written from the
 filename convention and will resolve once its note lands. If it 404s, the note
 is the thing that is missing, not the link. What a reviewer most needs from
 those four is carried in
@@ -198,12 +200,12 @@ where each claim is made: `wip/overlay_29_023055B0_all/`,
 `wip/overlay_29_022E5650_all/`, `wip/overlay_29_023047DC_all/`,
 `wip/main_020504BC_all/`, `wip/main_0200D1F0_all/`, `wip/main_02052060_all/`,
 `wip/overlay_29_02320788_all/` and `wip/ov29_022E34A8_EU/`. The earlier
-`bff2fa3b` evidence is under `wip/main_02003328_all/` and
-`wip/overlay_29_022FB678_all/`; `146982f0`'s under
+`967fe53b` evidence is under `wip/main_02003328_all/` and
+`wip/overlay_29_022FB678_all/`; `0f3cbcbc`'s under
 `wip/overlay_29_02337EC0_all/`, `wip/overlay_29_022E335C_all/` and
 `wip/overlay_29_0230F02C_all/`.
 
-### A correction to `146982f0`'s commit message, recorded because the commit was not amended
+### A correction to `0f3cbcbc`'s commit message, recorded because the commit was not amended
 
 **Fact, recounted from that commit's own diff.** The message says *"Sixteen
 call-site-derived declarations in twelve files are replaced by an include of the
@@ -227,17 +229,75 @@ counted in neither figure.
 
 **Only the message's arithmetic is wrong.** The commit itself is correct, its
 three-region build is on record, and nothing about the change depends on the
-count. It was **not amended** — amending would re-key `commits/146982f0.md` and
+count. It was **not amended** — amending would re-key `commits/0f3cbcbc.md` and
 every reference to that hash — so the discrepancy is recorded here instead, and
 a reviewer reading the message should take nineteen/fourteen as the figure.
 
 ## Cross-cutting changes a reviewer should weigh
 
-The sections are newest first. The four most recent commits (`76558112`,
-`d6db5fa5`, `3853e3bc`, `50ef900c`) land 312 functions and clear sixteen whole
+The sections are newest first. The four most recent commits (`6f3ad694`,
+`637d1966`, `14339589`, `c482e2df`) land 312 functions and clear sixteen whole
 asm files between them, and they carry most of this branch's remaining
 shared-type risk — a reviewer with limited time should read from here down to
 the `enum item_id` section and stop.
+
+### Rebased onto `a3d64122`, and both sides had decompiled the same function
+
+**Fact.** On 2026-09-18 the thirty-two unmerged commits were rebased from
+`c313f009` onto `a3d64122`. Upstream had added six commits: one decompiling 13
+functions and emptying six asm files, a review pass, and two pmdsky-debug syncs.
+All 32 replayed, `upstream/main` is an ancestor of the tip, and the three ROMs
+match at `457a2aaf`.
+
+Four conflicts, each a different kind, and the resolutions are the part a
+reviewer should check:
+
+**1. `main_02052A7C` — upstream is a strict superset.** That file held `GetExp`,
+`GetEvoParameters` and `GetTreasureBoxChances`. This branch had decompiled only
+`GetExp` and split the remainder into `asm/main_02052AB0.s`; upstream decompiled
+all three. Upstream's `src/main_0205283C.c` wins outright, and our split
+remainder and its `main.lsf` line are gone.
+
+**2. `asm/overlay_29_022E4BB4.s` — our delete plus their rename.** We had cleared
+the file; upstream *modified* it, and the modification was a pmdsky-debug rename,
+`ov29_022E4C00` → `PlayAttractHitEffect`. The delete is right, but **the rename
+had to be carried into our C or the link would break**: upstream's
+`asm/overlay_29_02311C28.s:540` now calls the new name and nothing would define
+it. Applied to `src/overlay_29_022E4B8C.c` and its header.
+
+**3. `src/main_0205283C.c` — both sides did real work, so neither simply wins.**
+Upstream's two new functions use `MONSTER_DATA_TABLE_PTR` as a plain pointer;
+commit `c482e2df` had retyped that global into `struct unk_020B09B4` (a grouped
+object, load-bearing for `LoadMonsterMd` — see that commit's note). The
+resolution keeps **upstream's functions and signatures** and rewrites their 21
+accesses onto **our retyped global**. Both survive.
+
+**Consequence a reviewer should know**: `GetExp`'s landed signature is now
+upstream's `s32 GetExp(s16 monster_id, s32 level)`, not the
+`enum monster_id` this branch used. The one casting call site,
+`src/overlay_29_02308FBC.c`, compiles clean against it.
+
+**4. `src/main_02048C5C.c` — an add/add, and upstream's is lighter.** Both sides
+decompiled `sub_02048C5C` (ours in `d27a7387`). **Fact**: the target's literal
+pool holds `_022AAE74` twice, and MWCC keys pool entries on `(symbol, addend)`
+and de-duplicates, so two distinct keys are required. We supplied them by adding
+a zero-length `.global _022AAE74_2` to `asm/main_bss_020B3380.s`. Upstream
+supplied them with a **negative addend on the next symbol**,
+`(u8 *)(&_022AAE78 - 4)` — same two keys, **no change to the assembly at all**.
+
+Upstream's version is what is landed; ours and the alias were dropped, and
+`asm/main_bss_020B3380.s` is byte-identical to its original state (verified:
+nothing else referenced the alias). **Inference, and the general lesson**: a new
+`.global` in a data file is the heaviest way to obtain a second pool key and
+should be the last option tried, not the first — a neighbouring symbol with an
+addend often does it for free. The `_022AB918` case in `c482e2df` remains a
+genuine exception, because there the two objects have *different sizes* and
+neither can be expressed as an addend on the other's type.
+
+**What was checked and was not a problem**: a scan for duplicate function
+definitions across `src/` lit up ten symbols, but they are forward declarations,
+and the pre-rebase tree had 62 of the same. No asm file was cleared by both
+sides, and no symbol we removed is still referenced anywhere.
 
 ### Rebased onto `c313f009`, and one shared member the two sides disagreed about
 
@@ -322,7 +382,7 @@ sub-object; `overlay_30_init.c` reaches four of them directly, so those four
 expressions gain `field_0x286b0`. Offsets are unchanged, so this is a spelling
 change only.
 
-### `struct monster`'s 0x19C–0x20F becomes an array of a new type ([`3853e3bc`](../commits/3853e3bc.md))
+### `struct monster`'s 0x19C–0x20F becomes an array of a new type ([`14339589`](../commits/14339589.md))
 
 **Fact.** 112 lines of `struct monster` — `struct position pos` at `0x19C`, 110
 `u8` placeholders, and `u16 walk_anim_frames_left` at `0x1B4` — are replaced by
@@ -354,11 +414,11 @@ name as the new type's first member; `walk_anim_frames_left` becomes
 `field_0x18` and its meaning is now recorded nowhere in the tree. This is the
 third case **recorded on this page** of a width or grouping correction silently
 deleting the tree's only note on a field (see `speed_boost_counter` under
-`146982f0`, and `bitstream::ptr` below); no census of the branch as a whole has
+`0f3cbcbc`, and `bitstream::ptr` below); no census of the branch as a whole has
 been run, so there may be more. Claude does not author comments in `pmd-sky`, so
 all three are left for someone with full context.
 
-### `struct bag_items` loses `fill2`/`fill3`/`fill4` for the members behind them ([`3853e3bc`](../commits/3853e3bc.md))
+### `struct bag_items` loses `fill2`/`fill3`/`fill4` for the members behind them ([`14339589`](../commits/14339589.md))
 
 **Fact.** Three filler runs totalling `0x1001` bytes are replaced by their real
 contents: a `u8`, two 1000-element arrays (`s16[1000]` at `0x38A`, `u16[1000]`
@@ -382,15 +442,15 @@ return types — `GetCurrentKecleonShop1ItemByIndex` and
 reaches four files outside the batch.
 
 **Fact, and worth stating plainly because two commit messages disagree.** This
-change is in **`3853e3bc`**. `50ef900c`'s message opens a paragraph with
+change is in **`14339589`**. `c482e2df`'s message opens a paragraph with
 *"struct bag_items loses fill2/fill3/fill4 for the members behind them, so
 struct bulk_item moves above it and two accessors return struct bulk_item \*"* —
-that paragraph is **stale**, carried forward from the earlier commit. `50ef900c`
+that paragraph is **stale**, carried forward from the earlier commit. `c482e2df`
 touches `include/item.h` only to add `struct unk_0209C850`;
-`git log -S'u8 fill2' -- include/` names `3853e3bc` and not `50ef900c`. The
+`git log -S'u8 fill2' -- include/` names `14339589` and not `c482e2df`. The
 tree is correct either way — the change exists once — but a reviewer reading
-`50ef900c`'s message alone would attribute it to the wrong commit. Like the
-`146982f0` count above, this was **not amended**.
+`c482e2df`'s message alone would attribute it to the wrong commit. Like the
+`0f3cbcbc` count above, this was **not amended**.
 
 **Open, per `wip/main_0200F884_all/STATUS.md` §10.** The outer bound `2` on
 `field_0x1330` / `field_0x1374` rests on `cmp r2, #2` in `AllKecleonShopsZInit`
@@ -398,7 +458,7 @@ alone, nothing outside the file indexes them, and the placement of
 `struct bulk_item` above `struct bag_items` is a presentation call rather than a
 measured one.
 
-### `window.h`'s `portrait_params` gains a `Point`, and `ldm` is the evidence ([`3853e3bc`](../commits/3853e3bc.md))
+### `window.h`'s `portrait_params` gains a `Point`, and `ldm` is the evidence ([`14339589`](../commits/14339589.md))
 
 **Fact.** `u32 offset_x; u32 offset_y;` at `0x4`/`0x8` become one
 `Point offset;`, and the existing `Point` typedef moves above `portrait_params`
@@ -408,7 +468,7 @@ so it can be a member. Same eight bytes, same offsets.
 `add r1, r4, #0xc; ldm r1, {r1,r2}`. MWCC emits `ldm` for this only when the
 base register points **exactly** at the object being passed; two separate member
 reads scored **860**. This is the same family of lever as
-`struct unk_02337EE8` in `146982f0` and `struct unk_022FBD24` in `8e51f191` —
+`struct unk_02337EE8` in `0f3cbcbc` and `struct unk_022FBD24` in `964beafb` —
 grouping members into a type is what produces the target's base-register
 arithmetic — but here the tell is a block load rather than an add chain.
 
@@ -420,7 +480,7 @@ That is a measurement, not an argument from "the offsets did not move".
 (*"Tile offset (x / 8) …"*) went with them; `Point`'s `x`/`y` carry the meaning
 adequately, but the "/ 8" scaling is now undocumented.
 
-### `struct bitstream::ptr` is `u8 *`, not `char *` ([`50ef900c`](../commits/50ef900c.md))
+### `struct bitstream::ptr` is `u8 *`, not `char *` ([`c482e2df`](../commits/c482e2df.md))
 
 **Fact.** `include/save.h` changes `char* ptr; // Current byte` to `u8* ptr;`.
 **Fact, and this is the whole argument:** `CopyBitsTo` and `CopyBitsFrom` read
@@ -436,7 +496,7 @@ of `bitstream::ptr` users is recorded here, so treat "nothing else depended on
 it" as **build-confirmed rather than surveyed**. The `// Current byte` comment
 went with the line.
 
-### A second bss label at `0x022AB918`, and no bytes moved ([`50ef900c`](../commits/50ef900c.md))
+### A second bss label at `0x022AB918`, and no bytes moved ([`c482e2df`](../commits/c482e2df.md))
 
 **Fact.** `asm/main_bss_022AB0AC.s` gains two lines — `.global _022AB918` and
 the label `_022AB918:` — immediately above the existing `TEAM_NAME` label, at
@@ -467,16 +527,16 @@ strictly uglier.
 
 ### `DUNGEON_PTR`: two more files take the complete type; the census is now three spellings across 92 files
 
-**Fact, counted by grep after `50ef900c`:** **57** files declare
+**Fact, counted by grep after `c482e2df`:** **57** files declare
 `extern struct dungeon *DUNGEON_PTR[];`, **31** declare the scalar, and **4**
 declare `*DUNGEON_PTR[2]` (`src/dg_camera.c`, `src/special_move_types.c`,
 `src/overlay_29_022E9FC0.c`, `src/overlay_29_023047B8.c`). It was 52 / 31 / 2 at
-`146982f0`; the four commits since add five new `[]` declarations and two new
+`0f3cbcbc`; the four commits since add five new `[]` declarations and two new
 `[2]`. **No header in `include/` declares the symbol at all** — the one
 `include/` hit is not a declaration of it — so every spelling is local to its
 translation unit and the disagreement stays invisible to the build.
 
-**Fact, measured, and it is the same lever the `146982f0` section below
+**Fact, measured, and it is the same lever the `0f3cbcbc` section below
 describes.** `ov29_022EA008` scores **1025** under the incomplete `[]` form: an
 incomplete type lets MWCC keep `DUNGEON_PTR[0]` live across a store the target
 reloads after. `[]` and `[2]` are compatible types, so adopting `[2]` changes no
@@ -492,10 +552,10 @@ sits: the question is no longer "why do these few files differ" so much as "how
 many of the 57 would also match under a complete type". Nobody has run that
 measurement, and every change of spelling is a per-function re-measurement.
 
-### MWCC inlines a callee it has already seen — the second time, with the opposite remedy ([`50ef900c`](../commits/50ef900c.md))
+### MWCC inlines a callee it has already seen — the second time, with the opposite remedy ([`c482e2df`](../commits/c482e2df.md))
 
-`bff2fa3b` split one asm file into two objects because `GetTime`'s calls to a
-preceding `EnableAllInterrupts` were folded away (section below). `50ef900c`
+`967fe53b` split one asm file into two objects because `GetTime`'s calls to a
+preceding `EnableAllInterrupts` were folded away (section below). `c482e2df`
 hits the same rule and has to go further: `sub_02050CF8` and `sub_02050D84`
 land in **translation units of their own**, `src/main_02050CF8.c` and
 `src/main_02050D84.c`.
@@ -508,7 +568,7 @@ Retail emits a real `bl` there.
 
 **Inference, and a strong one:** retail compiled these two functions apart from
 `BitstreamDebug`. The bytes establish that the call was not inlined; they do not
-establish the file boundary that produced that, and as with `bff2fa3b` any
+establish the file boundary that produced that, and as with `967fe53b` any
 boundary that separates them would do. **Fact, recorded because it was the
 obvious wrong suspect:** the literal pool — five words and the predicated
 `ldrne`/`ldreq` pair — was never the problem.
@@ -517,12 +577,12 @@ obvious wrong suspect:** the literal pool — five words and the predicated
 by exactly the instructions of a call, check whether the callee is an
 already-compiled function in the same translation unit before touching the C.
 
-### An asm object created in one commit and removed in the next ([`d6db5fa5`](../commits/d6db5fa5.md) → [`50ef900c`](../commits/50ef900c.md))
+### An asm object created in one commit and removed in the next ([`637d1966`](../commits/637d1966.md) → [`c482e2df`](../commits/c482e2df.md))
 
 Worth following as a unit, because reading either commit alone gives the wrong
 impression.
 
-**Fact.** `d6db5fa5` clears 22 of `asm/main_02055894.s`' 23 functions and
+**Fact.** `637d1966` clears 22 of `asm/main_02055894.s`' 23 functions and
 **splits** the file rather than clearing it: `sub_020559D8` sat at score **75**
 with **0 structural rows** — same 82 instructions in the same order — and 11
 register-colouring rows, so it was left as its own object `asm/main_020559D8.o`
@@ -535,14 +595,14 @@ on `r6` where the target has `r5`, `j` on `r7` where the target has `r6`, `dst`
 on `r5` where the target has `r7`). **All 24 declaration orders of
 `{m, i, dst, j}`, all 120 of `{m, i, dst, j, w}` with the copy temp named, and
 284 scope × statement-order variants — roughly 450 measured spellings — never
-moved them.** It closed in `50ef900c` on **one line in the trailing loop, the
+moved them.** It closed in `c482e2df` on **one line in the trailing loop, the
 one furthest from the eleven differing rows**: `dst->is_valid = 0; dst++;`
 respelled `dst++->is_valid = 0;`. Both spell the identical instruction,
 `strb r1, [r7], #0x44`; only the register assignment changes. The object created
 one commit earlier is deleted again.
 
 **The transferable part, and it generalises the lesson already recorded under
-`636bf2e5`:** a declaration-order sweep is only as general as the *set* it
+`92774e8a`:** a declaration-order sweep is only as general as the *set* it
 sweeps, and the discriminator here was not a declaration lever at all. The
 respelling that fixed it is in a statement that was not in any differing row.
 
@@ -558,25 +618,25 @@ where noted.
 
 | change | commit | evidence |
 |---|---|---|
-| `struct ground_monster`: `level`, `level_at_first_evo`, `level_at_second_evo` `s8` → `u8`; `iq`, `max_hp` `u16` → `s16` | `d6db5fa5` | `sub_02055E14` reads the first three `ldrb` and the last two `ldrsh`. **The reading validates itself**: `id` at `0x4` is read `ldrsh` and is already declared `s16`, and every member whose declaration is already correct reads exactly as declared. A cast at the read site cannot fix this. **Deviates from pmdsky-debug's `s8`/`u16`**, and it narrows `ApplyGummiBoostsGroundMode`'s second parameter from `u16 *` to `s16 *` — that function is still asm, so its prototype is now pinned by this reading rather than by its own body |
-| `struct dungeon`: `u8 field_0x1c; u8 field_0x1d;` → one `s16` | `d6db5fa5` | `ldrsh`/`strh` at `0x1c`. `0x1C` is 4-aligned and `0x1E` is already `s16`, so no padding appears. No other TU names either field |
-| `struct entity`: `field_0xac` + `field_0xad` → one `s16` | `3853e3bc` | `ov29_02304830` reads `entity + 0xAC` with `ldrsh`, which no pair of `u8` members can produce and no cast at the read site can fix. Neither name is used anywhere else |
-| `struct unk_0202AAA8` gains four members carved out of existing byte padding (a `u32` at `0x0`, a flag word + initial selected index at `0xFC`/`0x100`, a `u8 *` at `0x160`, an `s32` at `0x1A8`) | `76558112` | offsets and `sizeof` (`0x1C8`) unchanged, **proven by compiling one `offsetof` assertion per member with `mwccarm` and reading the folded constant back — with a negative control that correctly fails**, so "all as expected" is an outcome the check could have missed. Nothing in the tree read any of the four offsets |
-| `struct struct_2` moves from `include/overlay_31_02382820.h` to `include/window.h` | `76558112` | a pure move; the name is pre-existing and unchanged. `CreateSimpleMenuInternal` copies it whole (`0x98` bytes), so its size is load-bearing. `window.h` rather than `main_0202AAA8.h` because the latter drags `main_0202AB40.h`'s prototypes into `overlay_31_02382820.c`, where they collide with that file's own declarations |
-| `struct unk_020517F4`: `u8 field_0x0[8]` → `u8 field_0x0[4]` + `s32 field_0x4` | `50ef900c` | a 32-bit load at offset 4 |
-| `sub_02051FF0` and `LoadFileFromRom` take `const char *path`, not a `u32` file id | `50ef900c` | `src/ground_bg.c` already declared the latter correctly — i.e. the tree already disagreed with itself about this parameter |
+| `struct ground_monster`: `level`, `level_at_first_evo`, `level_at_second_evo` `s8` → `u8`; `iq`, `max_hp` `u16` → `s16` | `637d1966` | `sub_02055E14` reads the first three `ldrb` and the last two `ldrsh`. **The reading validates itself**: `id` at `0x4` is read `ldrsh` and is already declared `s16`, and every member whose declaration is already correct reads exactly as declared. A cast at the read site cannot fix this. **Deviates from pmdsky-debug's `s8`/`u16`**, and it narrows `ApplyGummiBoostsGroundMode`'s second parameter from `u16 *` to `s16 *` — that function is still asm, so its prototype is now pinned by this reading rather than by its own body |
+| `struct dungeon`: `u8 field_0x1c; u8 field_0x1d;` → one `s16` | `637d1966` | `ldrsh`/`strh` at `0x1c`. `0x1C` is 4-aligned and `0x1E` is already `s16`, so no padding appears. No other TU names either field |
+| `struct entity`: `field_0xac` + `field_0xad` → one `s16` | `14339589` | `ov29_02304830` reads `entity + 0xAC` with `ldrsh`, which no pair of `u8` members can produce and no cast at the read site can fix. Neither name is used anywhere else |
+| `struct unk_0202AAA8` gains four members carved out of existing byte padding (a `u32` at `0x0`, a flag word + initial selected index at `0xFC`/`0x100`, a `u8 *` at `0x160`, an `s32` at `0x1A8`) | `6f3ad694` | offsets and `sizeof` (`0x1C8`) unchanged, **proven by compiling one `offsetof` assertion per member with `mwccarm` and reading the folded constant back — with a negative control that correctly fails**, so "all as expected" is an outcome the check could have missed. Nothing in the tree read any of the four offsets |
+| `struct struct_2` moves from `include/overlay_31_02382820.h` to `include/window.h` | `6f3ad694` | a pure move; the name is pre-existing and unchanged. `CreateSimpleMenuInternal` copies it whole (`0x98` bytes), so its size is load-bearing. `window.h` rather than `main_0202AAA8.h` because the latter drags `main_0202AB40.h`'s prototypes into `overlay_31_02382820.c`, where they collide with that file's own declarations |
+| `struct unk_020517F4`: `u8 field_0x0[8]` → `u8 field_0x0[4]` + `s32 field_0x4` | `c482e2df` | a 32-bit load at offset 4 |
+| `sub_02051FF0` and `LoadFileFromRom` take `const char *path`, not a `u32` file id | `c482e2df` | `src/ground_bg.c` already declared the latter correctly — i.e. the tree already disagreed with itself about this parameter |
 
-Also in `76558112`, four data symbols that a call site had declared
+Also in `6f3ad694`, four data symbols that a call site had declared
 `extern s32` (because the consuming parameter was `void *`) are given their real
 types: `_0209C85C` and `ov11_02322CC8` are `WindowTemplate` — **fact, measured:**
 each spans exactly `0x10` to the next symbol and `WindowTemplate` is 16 bytes —
 and `_0209C86C` and `ov11_02322CF0` are `struct unk_0202A5CC[]`, 8-byte records
 matching the element counts the call sites pass. Each had exactly one user. This
-is the same failure mode as the parent-menu tables in `636bf2e5` below: **a
+is the same failure mode as the parent-menu tables in `92774e8a` below: **a
 `void *` parameter will accept any wrong type, so the build cannot see the
 error and only the data settles it.**
 
-### A EUROPE-only function, and a tool that leaves an orphan `#endif` ([`50ef900c`](../commits/50ef900c.md))
+### A EUROPE-only function, and a tool that leaves an orphan `#endif` ([`c482e2df`](../commits/c482e2df.md))
 
 **Fact.** `ov29_022E34A8_EU` exists only in the EUROPE build. Its definition and
 its prototype both carry `#ifdef EUROPE`, and its single call site was already
@@ -592,27 +652,27 @@ here; the tool was not changed. See also the tooling list further down.
 
 ### Declaration hygiene across the four commits: 65 call-site declarations retired, at least 21 of them wrong
 
-**Fact, from the commit messages.** `76558112` retires **9** across six files,
-`d6db5fa5` **35** across nineteen files, `3853e3bc` **4**, `50ef900c` **17** —
+**Fact, from the commit messages.** `6f3ad694` retires **9** across six files,
+`637d1966` **35** across nineteen files, `14339589` **4**, `c482e2df` **17** —
 each replaced by an `#include` of the header that now owns the function, or
 corrected in place. The "at least 21 wrong" is a floor, not a count: all nine of
-`76558112`'s were wrong and eleven of `d6db5fa5`'s, and at least one of
-`3853e3bc`'s four; `50ef900c`'s seventeen are not broken down in its message and
+`6f3ad694`'s were wrong and eleven of `637d1966`'s, and at least one of
+`14339589`'s four; `c482e2df`'s seventeen are not broken down in its message and
 have not been re-derived here.
 
 **Fact, the ones that were wrong, not merely redundant:**
 
-- `76558112`: four declared `void` where the function returns `bool8`; two
+- `6f3ad694`: four declared `void` where the function returns `bool8`; two
   declared an `s8` return where it is `s32`; three took an `s8` parameter where
   it is `s32`. **One was the fifth `extern` on a single physical line, which a
   line-oriented grep does not see** — worth knowing, because the declaration
   censuses recorded on this branch have all been greps.
-- `d6db5fa5`: **eleven** disagreed with the definition — `UnkMapRelatedFunc`
+- `637d1966`: **eleven** disagreed with the definition — `UnkMapRelatedFunc`
   declared with an unsigned first parameter in four files where the switch
   dispatch is a signed range test, six declared with no prototype at all and the
   wrong return type, and `sub_02055894` declared as taking a `u32` where it
   takes a pointer.
-- `3853e3bc`: `PlayEffectAnimationPixelPos` was declared taking a
+- `14339589`: `PlayEffectAnimationPixelPos` was declared taking a
   `struct entity *` and returning `void`; it takes a `struct pixel_position *`
   and returns `s32`, so `ov29_022E563C`'s own signature changes with it. Two of
   the four removed declarations were **packed onto one physical line** in
@@ -621,7 +681,7 @@ have not been re-derived here.
 **Both of the grep-evading forms above are new information about the census
 method**, not just about these files: a second declaration on the same physical
 line as a first, and a prototype written without `extern`, are invisible to the
-greps this branch has used — the latter is exactly what made `146982f0`'s own
+greps this branch has used — the latter is exactly what made `0f3cbcbc`'s own
 count wrong (see the correction after the commits table).
 
 **The recurring point, which this page has now made in several separate
@@ -629,14 +689,14 @@ sections:** two declarations in two translation units never meet, so the
 compiler cannot see them disagree and the ROM matches either way. Only a grep
 finds these, and only a careful grep finds all of them.
 
-### `enum item_id` gains `ITEM_INVALID = -1` — the branch's third negative sentinel ([`bff2fa3b`](../commits/bff2fa3b.md))
+### `enum item_id` gains `ITEM_INVALID = -1` — the branch's third negative sentinel ([`967fe53b`](../commits/967fe53b.md))
 
 **Fact.** `include/item.h`'s `enum item_id` now opens `ITEM_INVALID = -1,` above
 `ITEM_NOTHING = 0`, placed exactly as `MONSTER_INVALID` is in `enum monster_id`.
 The enumerator range becomes −1 … 1399, which still fits two bytes under
 `-enum min`, so no field of this type changes width.
 
-**Fact, measured.** `AuraBowIsActive` (landed one commit later, in `146982f0`)
+**Fact, measured.** `AuraBowIsActive` (landed one commit later, in `0f3cbcbc`)
 scored **200 with exactly one differing row** against the tree as it stood:
 the target loads `monster->held_item.id` with `ldrsh` where the candidate
 emitted `ldrh`. The load's sign is decided by the *parameter* type —
@@ -679,7 +739,7 @@ is a site that could move, and `struct item_volatile` is a parallel declaration
 of the same layout (`volatile s16 id; // 0x4`, kept to match `AiDecideUseItem`)
 that would have to change with it.
 
-### `struct dungeon` gains a second sub-object: `struct unk_02337EE8` ([`146982f0`](../commits/146982f0.md))
+### `struct dungeon` gains a second sub-object: `struct unk_02337EE8` ([`0f3cbcbc`](../commits/0f3cbcbc.md))
 
 **Fact.** Ten consecutive `struct dungeon` members, from `group_id_copy` at
 `0x286B0` through `spawn_table_entries_chosen`, are grouped into a new
@@ -719,10 +779,10 @@ measured to emit the same four adds.
 
 **This is the second time on this branch that regrouping existing `dungeon`
 members is what produces the target's base-register arithmetic** — the first was
-`struct unk_022FBD24` in [`8e51f191`](../commits/8e51f191.md), below. A reviewer
+`struct unk_022FBD24` in [`964beafb`](../commits/964beafb.md), below. A reviewer
 weighing one should weigh both; they are the same argument twice.
 
-### Two width corrections, and a comment lost with a member ([`146982f0`](../commits/146982f0.md))
+### Two width corrections, and a comment lost with a member ([`0f3cbcbc`](../commits/0f3cbcbc.md))
 
 Each replaces adjacent `u8` members with one wider member at the same offset, so
 **no following offset and no struct alignment moves**.
@@ -750,7 +810,7 @@ comments in `pmd-sky`; someone with full context should decide the wording.
 pmdsky-debug, and therefore whether absorbing it is a deviation worth raising
 upstream.
 
-### `DUNGEON_PTR`: the lever is complete-vs-incomplete type, not scalar-vs-array ([`146982f0`](../commits/146982f0.md))
+### `DUNGEON_PTR`: the lever is complete-vs-incomplete type, not scalar-vs-array ([`0f3cbcbc`](../commits/0f3cbcbc.md))
 
 **Fact, measured** (`wip/overlay_29_022E335C_all/cand/ptr-form.md`, a full
 sweep of declaration × access spelling, real compiles, NORTH_AMERICA):
@@ -783,7 +843,7 @@ existing use sites; that was measured byte-identical first
 `asm/overlay_29_data_023534E0.s` the label is followed by two `.byte`
 quadruples before the next `.global`. In-tree precedent for `[2]` predates this
 commit at `src/special_move_types.c:17`, landed in
-[`8e51f191`](../commits/8e51f191.md) for the same reason.
+[`964beafb`](../commits/964beafb.md) for the same reason.
 
 **Fact, census by grep after this commit:** 52 files declare
 `*DUNGEON_PTR[]`, 31 declare the scalar, 2 declare `*DUNGEON_PTR[2]`. No header
@@ -798,14 +858,14 @@ scalar-versus-array. `PopulateActiveMonsterPtrs`, which that entry records as
 fixed by going scalar, would on this reading also be fixed by `[2]`. That is one
 measurement nobody has run.
 
-### Twenty-four call-site declarations retired; ten of them were wrong ([`bff2fa3b`](../commits/bff2fa3b.md), [`146982f0`](../commits/146982f0.md))
+### Twenty-four call-site declarations retired; ten of them were wrong ([`967fe53b`](../commits/967fe53b.md), [`0f3cbcbc`](../commits/0f3cbcbc.md))
 
-Five in `bff2fa3b` and **nineteen across fourteen files** in `146982f0` are
+Five in `967fe53b` and **nineteen across fourteen files** in `0f3cbcbc` are
 replaced by an `#include` of the header that now owns the function. **Ten were
 wrong, not merely redundant** — facts, read off each callee's own asm:
 
 *(This heading previously read "Twenty-one", and the sentence "sixteen across
-twelve files", following `146982f0`'s commit message. Both were wrong for the
+twelve files", following `0f3cbcbc`'s commit message. Both were wrong for the
 same reason the message was; the recount is after the commits table. The list of
 which declarations were wrong is unaffected.)*
 
@@ -825,7 +885,7 @@ This is the same failure mode the branch has hit repeatedly: **two declarations
 in two translation units never meet, so the compiler cannot see them disagree
 and the ROM matches either way.** Only a grep finds these.
 
-### One asm file landed as two objects, because MWCC inlines a callee it has already seen (`bff2fa3b`)
+### One asm file landed as two objects, because MWCC inlines a callee it has already seen (`967fe53b`)
 
 **Fact.** `asm/main_02003328.s`' nine functions do not fit in one translation
 unit. `GetTime` calls `EnableAllInterrupts`, which precedes it in address order,
@@ -841,7 +901,7 @@ the other side.
 `(0x02003608, 0x020037B4]` removes the inline and produces the same bytes; no
 measurement separates them.
 
-### The parent-menu tables were typed from the weakest prototype that accepted them ([`636bf2e5`](../commits/636bf2e5.md))
+### The parent-menu tables were typed from the weakest prototype that accepted them ([`92774e8a`](../commits/92774e8a.md))
 
 **Fact.** `asm/overlay_11_022ECD24_data.s` defines `ov11_02322E00` as five 8-byte
 entries — a `.word` string id followed by four bytes of value, terminated by
@@ -858,7 +918,7 @@ which `include/main_0202A66C.h` already declares and which
 * its own `extern u8 CreateParentMenuFromStringIds(void *, u32, void *, void *);`,
   whose `void *` fourth parameter is what let all of the above compile.
 
-`636bf2e5` types all seven globals `struct unk_0202A5CC[]`, deletes the duplicate
+`92774e8a` types all seven globals `struct unk_0202A5CC[]`, deletes the duplicate
 struct, yields the prototype to the header, and drops five now-redundant `&`.
 Byte-neutral: `&scalar` and an array decay to the same address.
 
@@ -873,7 +933,7 @@ wrong declaration. Only the data settles it.
 consumer's name and on the entries' `u16` looking like string ids. The layout is
 fact; the meaning is not, and no name was introduced for it.
 
-### An 809-instruction function closed by an allocator-ordering rule ([`636bf2e5`](../commits/636bf2e5.md))
+### An 809-instruction function closed by an allocator-ordering rule ([`92774e8a`](../commits/92774e8a.md))
 
 **Fact, measured.** `ov11_023090DC` reached `STRUCT 0` — every instruction,
 immediate and branch target correct, 820 rows against 820 — while a single
@@ -893,7 +953,7 @@ EXHAUSTED" as a property of the *axis*. It was a property of the *set* — four
 variables. A negative result on an ordering sweep is only as general as the set
 swept, and should record which variables were in it.
 
-### Three functions that do not exist in the JAPAN build ([`8e51f191`](../commits/8e51f191.md))
+### Three functions that do not exist in the JAPAN build ([`964beafb`](../commits/964beafb.md))
 
 **Fact.** `ov29_022FBD08`, `ov29_022FBD24` and `ov29_022FBD80` sit inside one
 `#ifndef JAPAN` in `asm/overlay_29_022FBC4C.s`. Their landed definitions *and*
@@ -901,7 +961,7 @@ their prototypes carry the same guard, so `check_landed_guards.py` reports three
 definitions at conditional depth 1 for this commit — **correct here**, not the
 defect that check normally catches.
 
-### `struct dungeon` gained a sub-object to force one base register ([`8e51f191`](../commits/8e51f191.md))
+### `struct dungeon` gained a sub-object to force one base register ([`964beafb`](../commits/964beafb.md))
 
 **Fact.** `struct unk_022FBD24` groups the two members at `0x3DCC` and `0x3E1C`
 into one sub-object: `u32[20]` then `u32`, same order, same offsets, so the
@@ -911,7 +971,7 @@ uses; without the type `src/overlay_29_022FBBEC.c` does not compile at all. The
 four comment lines moved verbatim with the members, which is the one mechanical
 exception the no-comments rule allows.
 
-### `struct damage_calc_diag` gained three padding bytes ([`d364822d`](../commits/d364822d.md))
+### `struct damage_calc_diag` gained three padding bytes ([`38aa265d`](../commits/38aa265d.md))
 
 The header modelled `move_type` as a 1-byte enum plus explicit
 `field_0x1/0x2/0x3`, but gave `move_category` no padding, so under `-enum min`
@@ -925,13 +985,13 @@ Only two places in the tree use `last_damage_calc`, both past the
 re-convergence point, so the change is byte-neutral — confirmed by a matching
 build of all three regions. A reviewer may prefer to model both enums as
 four-byte members and drop all six placeholders instead; that is byte-identical.
-**Superseded for `move_category` by `abfcb6e1`, next.**
+**Superseded for `move_category` by `76533508`, next.**
 
-### `struct damage_calc_diag`: `move_category` widened to `s32`, the eight modifiers made `u8` ([`abfcb6e1`](../commits/abfcb6e1.md))
+### `struct damage_calc_diag`: `move_category` widened to `s32`, the eight modifiers made `u8` ([`76533508`](../commits/76533508.md))
 
 `CalcDamage` writes `move_category` with a 4-byte `str` (`0x0230BDC8`), which a
 1-byte enum plus padding cannot produce (`strb`), so the field is now
-`s32 move_category;` and the three placeholder bytes from `d364822d` are gone —
+`s32 move_category;` and the three placeholder bytes from `38aa265d` are gone —
 the struct stays 0x54 bytes and the word-access evidence in the previous
 section agrees. It also reads the eight modifier counts at 0x30-0x37 with
 unsigned `ldrb` at all 24 sites, so they are `u8` where pmdsky-debug declares
@@ -944,7 +1004,7 @@ These are the changes that touch types shared with the rest of the tree. They ar
 the ones most likely to be contentious, and they are collected here so nobody has
 to find them across 50 commits.
 
-### `struct monster`: `bide_move_id` widened to a 2-byte `enum move_id` ([`92335aeb`](../commits/92335aeb.md))
+### `struct monster`: `bide_move_id` widened to a 2-byte `enum move_id` ([`d387d4e2`](../commits/d387d4e2.md))
 
 The third deviation from pmdsky-debug's declarations on this branch, and the
 same shape as the two `damage_calc_diag` ones above: upstream's byte is not the
@@ -971,7 +1031,7 @@ in the tree reads `bide_move_id` or `field_0xad`.
 **Worth raising upstream.** The field is conceptually a move id and pmdsky-debug
 sizes it as a byte; codegen requires 16 bits.
 
-### A stale extern retired, and a general jump-table fact ([`2238fa7d`](../commits/2238fa7d.md))
+### A stale extern retired, and a general jump-table fact ([`d814f8d0`](../commits/d814f8d0.md))
 
 Two things a reviewer may want beyond the diff.
 
@@ -993,7 +1053,7 @@ minimum to maximum *labelled* case, and leading/trailing default entries are
 explicit `case` labels sharing `default`'s body. That is a fact about MWCC, not
 about this function, and it will matter for the next switch-heavy target.
 
-### The first file split on this branch, and a struct that cannot yet be typed ([`c4d14ec0`](../commits/c4d14ec0.md))
+### The first file split on this branch, and a struct that cannot yet be typed ([`f47593d9`](../commits/f47593d9.md))
 
 Two things a reviewer should weigh beyond the diff.
 
@@ -1016,7 +1076,7 @@ Also here, and cheap to check: `sub_02046C78` and `sub_02046D20` take **no**
 arguments, contradicting `src/main_020663C8.c:3,5`. Two translation units never
 meet, so the build cannot catch that — only a grep can.
 
-### Three callee declarations corrected, two of which cancelled each other ([`bd3c6e4a`](../commits/bd3c6e4a.md))
+### Three callee declarations corrected, two of which cancelled each other ([`240bea14`](../commits/240bea14.md))
 
 `ov11_02307334` is the first caller that makes three long-standing declaration
 errors matter, and all three are `-W error` blockers for it rather than style
@@ -1040,7 +1100,7 @@ cancelled and the pair matched by accident. `SMULBB` multiplying by 6
 live at return; this function consumes it twice.
 `src/overlay_10_022BCC60.c` gained the matching `return`.
 
-### The asm's region forks that the C does not need ([`bd3c6e4a`](../commits/bd3c6e4a.md))
+### The asm's region forks that the C does not need ([`240bea14`](../commits/240bea14.md))
 
 `asm/overlay_11_022FE5F8.s` carries four `#ifdef JAPAN` **code** forks inside
 this function, and the C reproduces all four with **no `#if` at all** — three
@@ -1126,7 +1186,7 @@ sentinels were **verified in isolation** — added alone, nothing else modified,
 ROM still matching — so they are byte-neutral for all existing code. But this
 is a divergence from pmdsky-debug that upstream may simply not want.
 
-**There are now three.** `bff2fa3b` added `ITEM_INVALID = -1` to `enum item_id`
+**There are now three.** `967fe53b` added `ITEM_INVALID = -1` to `enum item_id`
 on the same reasoning and to the same standard of proof — see the section at the
 top of this list. This heading is left at "two" because it is the record of what
 those two commits did; the count for the branch as a whole is three.
@@ -1137,7 +1197,7 @@ those two commits did; the count for the branch as a whole is three.
 - [`35134ece`](../commits/35134ece.md) — four more, up to `0x13B4`.
 - [`152f6c7e`](../commits/152f6c7e.md) — **filler split into three runs** to
   expose two pointers at `0x132C` and `0x1370`.
-- [`3853e3bc`](../commits/3853e3bc.md) — **the three filler runs replaced
+- [`14339589`](../commits/14339589.md) — **the three filler runs replaced
   outright** by the members behind them. Added later; see the full section at the
   top of this list.
 
@@ -1171,7 +1231,7 @@ other writes a word, and one writes a byte inside the other's word at `0x1B0`.
 They are kept as separate views because a merged struct would have to assert an
 agreement the stores disprove.
 
-### Three field types corrected, and a message-id parameter (`a51777ff`)
+### Three field types corrected, and a message-id parameter (`eb0db73b`)
 
 `ApplyDamage` required `struct monster::bide_damage_tally` `u32` -> `s32`
 (clamped with `strgt`), `struct monster::field_0x168`/`field_0x169` merged into
@@ -1189,7 +1249,7 @@ forwarders whose parameter types their own bodies never constrained. This is the
 same failure mode as `SetActionUseMovePlayer` above: **a parameter that a
 forwarder only passes through cannot be typed from the forwarder.**
 
-### A deliberate declaration divergence: `DUNGEON_PTR` (`a51777ff`)
+### A deliberate declaration divergence: `DUNGEON_PTR` (`eb0db73b`)
 
 `src/overlay_29_02308FBC.c` declares `extern struct dungeon *DUNGEON_PTR;`
 where `src/dg_camera.c`, `src/dg_uty.c` and `src/dungeon_ai.c` declare
@@ -1217,10 +1277,10 @@ these.** Known outstanding:
 | `UpdateWindow`, `sub_02027B1C` | `overlay_25_init.c` declares both as `char *` | **genuinely wrong** — the value is a window id ([`7f6977e2`](../commits/7f6977e2.md)) |
 | `UpdateWindow`, `sub_02027B1C` | `overlay_13_0238BDA8.c` declares both as `s8` | harmless; left to preserve an upstream annotation |
 | `sub_0202836C` | **five** declarations that disagree: `int`, `s32`, `s8`, `s8`, and `s32` added by [`702c4c85`](../commits/702c4c85.md) | kept out of `window.h` so no overlay sees a conflict |
-| `DUNGEON_PTR` (data) | `overlay_29_02308FBC.c` declares it scalar; `dg_uty.c`, `dungeon_ai.c` and 55 other files declare `*DUNGEON_PTR[]`; `dg_camera.c`, `special_move_types.c`, `overlay_29_022E9FC0.c` and `overlay_29_023047B8.c` declare `*DUNGEON_PTR[2]`, and `dungeon_map_access_1.c` uses the scalar — **three spellings across 92 files: 57 / 31 / 4** as of `50ef900c`, counted by grep (it was 52 / 31 / 2 at `146982f0`) | **deliberate, per function** — the lever is complete-vs-incomplete declared type rather than array-vs-scalar, measured in the sections above ([`a51777ff`](../commits/a51777ff.md), `146982f0`, `d6db5fa5`, `3853e3bc`) |
-| `DrawTextInWindow` | **five** declarations that disagree, in no header. [`78ca3a83`](../commits/78ca3a83.md) landed the definition (`s32 window_id`) and replaced four of them with the header | **The fifth must stay.** `overlay_13_0238BDA8.c`'s `DrawPersonalityTestDebug` holds the id in an `s8` local, so against the header's `s32` the call gains a sign extension retail does not emit — replacing it broke `OVY_13.sbin`. Retail's TUs genuinely disagreed here; the per-TU declaration is evidence, not untidiness |
-| `CreateSimpleMenuFromStringIds` | 3rd parameter typed `s32` in `overlay_25_init.c:38` and `main_0203D538.c:75` | **genuinely wrong** — it is a pointer (`add r2, r1, #0x1c` at [`bd3c6e4a`](../commits/bd3c6e4a.md)'s call site). Every earlier call site passes a literal `0`, so nobody had exercised it; that file carries a cast until the prototype is fixed |
-| `CloseTextBox2` | `overlay_25_init.c:9` declares `(s8)`; `overlay_31_02383880.c:16` declares `()` and calls it with **zero** arguments | the callee reads `r0`. Whether those zero-argument calls still match was not established ([`bd3c6e4a`](../commits/bd3c6e4a.md) declares one parameter) |
+| `DUNGEON_PTR` (data) | `overlay_29_02308FBC.c` declares it scalar; `dg_uty.c`, `dungeon_ai.c` and 55 other files declare `*DUNGEON_PTR[]`; `dg_camera.c`, `special_move_types.c`, `overlay_29_022E9FC0.c` and `overlay_29_023047B8.c` declare `*DUNGEON_PTR[2]`, and `dungeon_map_access_1.c` uses the scalar — **three spellings across 92 files: 57 / 31 / 4** as of `c482e2df`, counted by grep (it was 52 / 31 / 2 at `0f3cbcbc`) | **deliberate, per function** — the lever is complete-vs-incomplete declared type rather than array-vs-scalar, measured in the sections above ([`eb0db73b`](../commits/eb0db73b.md), `0f3cbcbc`, `637d1966`, `14339589`) |
+| `DrawTextInWindow` | **five** declarations that disagree, in no header. [`9b3650fe`](../commits/9b3650fe.md) landed the definition (`s32 window_id`) and replaced four of them with the header | **The fifth must stay.** `overlay_13_0238BDA8.c`'s `DrawPersonalityTestDebug` holds the id in an `s8` local, so against the header's `s32` the call gains a sign extension retail does not emit — replacing it broke `OVY_13.sbin`. Retail's TUs genuinely disagreed here; the per-TU declaration is evidence, not untidiness |
+| `CreateSimpleMenuFromStringIds` | 3rd parameter typed `s32` in `overlay_25_init.c:38` and `main_0203D538.c:75` | **genuinely wrong** — it is a pointer (`add r2, r1, #0x1c` at [`240bea14`](../commits/240bea14.md)'s call site). Every earlier call site passes a literal `0`, so nobody had exercised it; that file carries a cast until the prototype is fixed |
+| `CloseTextBox2` | `overlay_25_init.c:9` declares `(s8)`; `overlay_31_02383880.c:16` declares `()` and calls it with **zero** arguments | the callee reads `r0`. Whether those zero-argument calls still match was not established ([`240bea14`](../commits/240bea14.md) declares one parameter) |
 
 The `overlay_25_init.c` `UpdateWindow`/`sub_02027B1C` case and the
 `CreateSimpleMenuFromStringIds` row are the *incorrect* ones. Fixing it properly
@@ -1231,13 +1291,13 @@ piece of work.
 `include/main_0202AAA8.h` was replaced by an include when the function landed in
 [`702c4c85`](../commits/702c4c85.md), with all three decompiled callers rebuilt.
 **`PlayEffectAnimationEntity`'s eight mutually-agreeing-but-wrong declarations**
-were replaced by `include/dg_effect.h` in `146982f0` (see the section above), and
+were replaced by `include/dg_effect.h` in `0f3cbcbc` (see the section above), and
 `ov29_022FB984` / `ov29_022FB98C`'s wrong declarations by
-`include/dungeon_logic_4.h` in `bff2fa3b`.
+`include/dungeon_logic_4.h` in `967fe53b`.
 
 ### A construct that is a stand-in, not recovered source
 
-[`a51777ff`](../commits/a51777ff.md) matches `ApplyDamage` with one `volatile`
+[`eb0db73b`](../commits/eb0db73b.md) matches `ApplyDamage` with one `volatile`
 read:
 
 ```c
@@ -1256,7 +1316,7 @@ The closest natural form, a `struct curse_class_status *` local, reaches
 1623/1624 rows and differs in exactly one instruction. If a better construct
 turns up it should replace this line verbatim.
 
-[`abfcb6e1`](../commits/abfcb6e1.md) matches `CalcDamage`'s ability-multiply
+[`76533508`](../commits/76533508.md) matches `CalcDamage`'s ability-multiply
 block with an `s32 calc[2]` local, two temps and three `volatile s32 *`
 pointers to it. Every element removes one measured compiler obstacle (the
 note lists them: address-expression propagation, the scheduler's store
@@ -1266,7 +1326,7 @@ was byte-identical outside those eleven instructions from early on; a plainer
 spelling that satisfies the same conditions would be welcome and should
 replace it verbatim.
 
-`bff2fa3b` adds a third `volatile`, and it is the one case on this branch where
+`967fe53b` adds a third `volatile`, and it is the one case on this branch where
 the construct is **plausible source rather than only a codegen lever**.
 `include/main_0200330C.h` declares `volatile s32 field_0x1c;` and
 `volatile s32 field_0x20;` in `struct unk_020AEF7C`. *Fact*: the qualifier is
@@ -1378,7 +1438,7 @@ matching build could report:
    function is the **first** in its `.s` *and* sits inside a region conditional:
    the tool takes the opening `#ifdef` with the function and leaves the closing
    directive behind in the remainder file. Found in
-   [`50ef900c`](../commits/50ef900c.md) extracting `ov29_022E34A8_EU` from
+   [`c482e2df`](../commits/c482e2df.md) extracting `ov29_022E34A8_EU` from
    `asm/overlay_29_022E34A8.s`; **removed by hand in that commit, and the tool
    was not changed** — so the next region-guarded first-function extraction will
    hit it again. *Inference, not checked here:* unlike defects 1-3 and 5 this one
@@ -1411,7 +1471,7 @@ matching build could report:
   ([`152f6c7e`](../commits/152f6c7e.md)) and are almost certainly named
   enumerators.
 - **`struct damage_calc_diag` now disagrees with pmdsky-debug twice**
-  ([`abfcb6e1`](../commits/abfcb6e1.md)): `s32 move_category` where upstream
+  ([`76533508`](../commits/76533508.md)): `s32 move_category` where upstream
   has a 1-byte enum, and `u8` modifier counts where upstream has `s8`. The
   bytes force both; the question is whether to change upstream's declarations
   or carry the deviation.
@@ -1423,7 +1483,7 @@ matching build could report:
   construct that is a stand-in*); the parameter names for its arguments 7-9
   are inferred, `a9` is a placeholder.
 
-### Gathered from `bff2fa3b` and `146982f0`
+### Gathered from `967fe53b` and `0f3cbcbc`
 
 - **There are now three `-1` sentinels in shared enums**, not two:
   `ITEM_INVALID` joins `ENTITY_NONE` and `MONSTER_INVALID`. The policy question
@@ -1438,7 +1498,7 @@ matching build could report:
 - **Is `struct unk_02337EE8` an object the original source had, or only the
   spelling that reproduces the arithmetic?** The bytes do not distinguish it
   from six other spellings that carry a cast. The same question stands for
-  `struct unk_022FBD24` from [`8e51f191`](../commits/8e51f191.md); both are
+  `struct unk_022FBD24` from [`964beafb`](../commits/964beafb.md); both are
   grouping-for-codegen, and a reviewer may want a single answer for both.
 - **Two comments in `include/dungeon.h` need a human.** `speed_boost_counter`'s
   comment went with the member it documented — the tree's only record of what
@@ -1446,11 +1506,11 @@ matching build could report:
   width that has since changed. Neither was touched, because Claude does not
   author comments in `pmd-sky`.
 - **Does the tree want one `DUNGEON_PTR` spelling?** It now has three (52 `[]`,
-  31 scalar, 2 `[2]` **as of `146982f0`; 57 / 31 / 4 as of `50ef900c`** — see the
+  31 scalar, 2 `[2]` **as of `0f3cbcbc`; 57 / 31 / 4 as of `c482e2df`** — see the
   updated census in the cross-cutting section). Unifying it is not a sweep:
   `ov29_022E34C8` and
   `ov29_0233804C` match **only** under a complete type, the earlier entry above
-  (*A deliberate declaration divergence*, `a51777ff`) records `SetLeaderAction`
+  (*A deliberate declaration divergence*, `eb0db73b`) records `SetLeaderAction`
   needing the scalar where its neighbours carry the array form, and the 52 files
   still on `[]` have not been measured under
   anything else. Every change of spelling is a per-function re-measurement. This
@@ -1460,7 +1520,7 @@ matching build could report:
   produces the same bytes; `sub_02003620` would work too and would give a larger
   second file. Nothing measures the difference, so it is taste — recorded rather
   than hidden.
-- **Two byte-identical alternatives in `bff2fa3b` that were not shipped**, both
+- **Two byte-identical alternatives in `967fe53b` that were not shipped**, both
   one-line swaps if the PR prefers them. (1) `_020AEFB4` / `_020AEFC8` are
   almost certainly members of the object at `_020AEF7C` (`0x38 + 0x14 + 0x14 =
   0x60`, and `0x020AEF7C + 0x60 = 0x020AEFDC` exactly; neither label is
@@ -1481,7 +1541,7 @@ matching build could report:
   fact (`blx sl; strb r0, [r4, #6]`), the *empty* parameter list is not —
   nothing in the group passes an argument, but a callee could take one.
 
-### Gathered from `76558112`, `d6db5fa5`, `3853e3bc` and `50ef900c`
+### Gathered from `6f3ad694`, `637d1966`, `14339589` and `c482e2df`
 
 Collected from each batch's own `wip/*/STATUS.md`, which are contemporaneous
 records; where a batch's STATUS has no open-questions section, nothing is
@@ -1535,7 +1595,7 @@ invented for it.
   `field_0x24` disappears into it. It is also named for the wrong function by the
   placeholder rule's lowest-address tie-break; `AssignTopScreenHandlers` is
   arguably the better namesake.
-- **Two presentation calls in `76558112` that an anonymous union would remove.**
+- **Two presentation calls in `6f3ad694` that an anonymous union would remove.**
   `struct unk_0202AAA8`'s `0x1B0` is read both as a `u8` and written as a word,
   and `CreateSimpleMenuInternal` reaches its `struct struct_2` argument through
   `*(struct struct_2 *)&menu->field_0x100`. An anonymous union — a construct the
@@ -1562,8 +1622,8 @@ invented for it.
   they would be better argued as one case than one at a time. *No exact count is
   given here because nobody has enumerated them across all 131 commits.*
 - **Three field comments have now been deleted by width or grouping changes** —
-  `speed_boost_counter`'s (`146982f0`), `walk_anim_frames_left`'s and `pos`'s
-  (`3853e3bc`), and `bitstream::ptr`'s *"Current byte"* (`50ef900c`) — plus
+  `speed_boost_counter`'s (`0f3cbcbc`), `walk_anim_frames_left`'s and `pos`'s
+  (`14339589`), and `bitstream::ptr`'s *"Current byte"* (`c482e2df`) — plus
   `portrait_params`' "/ 8" scaling note. None was replaced, because Claude does
   not author comments in `pmd-sky`. If a reviewer wants the documentation kept,
   this is the systematic cost of the retyping work and it needs a human pass, not
